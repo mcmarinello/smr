@@ -132,6 +132,18 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": 15 * 60,  # 15 minutes in seconds
         "options": {"queue": "scoring"},
     },
+    # PRD §16.1 — tracking pipeline fans out per wallet on the 'tracking' queue.
+    "tracking-all-targets-every-5m": {
+        "task": "tracking.tasks.track_all_targets",
+        "schedule": 5 * 60,  # 5 minutes in seconds
+        "options": {"queue": "tracking"},
+    },
+    # PRD §16.2 — convergence scan over recent opens on the 'tracking' queue.
+    "tracking-detect-convergence-every-10m": {
+        "task": "tracking.tasks.detect_convergence",
+        "schedule": 10 * 60,  # 10 minutes in seconds
+        "options": {"queue": "tracking"},
+    },
 }
 
 # Discovery Engine tuning (override in .env)

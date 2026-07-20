@@ -29,6 +29,12 @@ class Wallet(BaseModel):
     score_at_promotion = models.IntegerField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
     tags = ArrayField(models.CharField(max_length=100), default=list, blank=True)
+    # PRD §16.1 — incremental fill fetching cursor. Updated after every
+    # tracking cycle so userFillsByTime only returns what is new.
+    last_seen_fill_timestamp = models.DateTimeField(null=True, blank=True, db_index=True)
+    # PRD §15.5 — hysteresis counter for demotion: how many consecutive
+    # score recalculations the wallet has stayed below the demotion threshold.
+    demotion_consecutive_count = models.IntegerField(default=0)
 
     class Meta:
         db_table = "wallets_wallet"
@@ -38,6 +44,44 @@ class Wallet(BaseModel):
 
     def __str__(self) -> str:
         return self.address
+
+
+class WalletSettings(BaseModel):
+    """
+    PRD §15.5 — per-wallet promotion/demotion tuning. One row per wallet
+    (auto-created on first access via `get_settings`). When the user has not
+    configured a wallet the defaults defined as class-level constants apply.
+    """
+
+    wallet = models.OneToOneField(
+        Wallet,
+        on_delete=models.CASCADE,
+        related_name="settings",
+    )
+    # PRD §15.5: promotion threshold (default 70). Crossing score_raw in
+    # either 7d or 30d window promotes the wallet to is_target=True.
+    promotion_threshold = models.IntegerField(
+        default=70,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
+    # PRD §15.5: demotion threshold (default 55) — must stay strictly below
+    # this for N consecutive recalculations to demote.
+    demotion_threshold = models.IntegerField(
+        default=55,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
+    # PRD §15.5: how many consecutive below-demotion recalculations before
+    # is_target is flipped to False.
+    demotion_consecutive_required = models.IntegerField(
+        default=3,
+        validators=[MinValueValidator(1), MaxValueValidator(20)],
+    )
+
+    class Meta:
+        db_table = "wallets_walletsettings"
+
+    def __str__(self) -> str:
+        return f"settings:{self.wallet_id}"
 
 
 class Fill(BaseModel):
