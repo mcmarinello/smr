@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "bridge",
     "dashboard",
     "wallet_engine",
+    "monitoring",
 ]
 
 MIDDLEWARE = [

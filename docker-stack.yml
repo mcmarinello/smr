@@ -1,0 +1,200 @@
+version: "3.9"
+
+# SMR — Docker Swarm stack (PRD Sprint 10 §Deploy + Observability).
+# Target host: Contabo VPS. Frontend TLS termination + Host routing via Traefik.
+#
+# Deploy with: `docker stack deploy -c docker-stack.yml smr`
+# (wrapperd by ./deploy.sh which also runs migrations + creates superuser).
+
+x-worker-common: &worker-common
+  image: smr/web:latest
+  env_file: .env.production
+  environment:
+    - DJANGO_SETTINGS_MODULE=smr.settings
+  depends_on:
+    - db
+    - redis
+  networks:
+    - smr_internal
+  restart_policy:
+    condition: on-failure
+    max_attempts: 5
+    window: 120s
+
+services:
+
+  traefik:
+    image: traefik:v3.1
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.swarmmode=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=smr_internal"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--certificatesresolvers.le.acme.tlschallenge=true"
+      - "--certificatesresolvers.le.acme.email=${ACME_EMAIL:-admin@smr.trade}"
+      - "--certificatesresolvers.le.acme.storage=/letsencrypt/acme.json"
+      - "--metrics.prometheus=true"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - traefik_letsencrypt:/letsencrypt
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - smr_internal
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  db:
+    image: timescale/timescaledb:latest-pg16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-smr}
+      POSTGRES_USER: ${POSTGRES_USER:-smr}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-smrpass}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - smr_internal
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-smr} -d ${POSTGRES_DB:-smr}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes", "--save", "60", "1"]
+    volumes:
+      - redisdata:/data
+    networks:
+      - smr_internal
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    <<: *worker-common
+    command: ["gunicorn", "smr.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "60"]
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.smr-web.rule=Host(`smr.trade`)"
+        - "traefik.http.routers.smr-web.entrypoints=websecure"
+        - "traefik.http.routers.smr-web.tls.certresolver=le"
+        - "traefik.http.services.smr-web.loadbalancer.server.port=8000"
+        - "traefik.http.routers.smr-web.service=smr-web"
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health/',timeout=5).status==200 else 1)\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  worker-discovery:
+    <<: *worker-common
+    command: ["celery", "-A", "smr", "worker", "-Q", "discovery", "-c", "2", "-n", "discovery@%h", "--loglevel=info"]
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A smr inspect ping -d celery@discovery@%h || exit 1"]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 60s
+
+  worker-tracking:
+    <<: *worker-common
+    command: ["celery", "-A", "smr", "worker", "-Q", "tracking", "-c", "4", "-n", "tracking@%h", "--loglevel=info"]
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A smr inspect ping -d celery@tracking@%h || exit 1"]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 60s
+
+  worker-scoring:
+    <<: *worker-common
+    command: ["celery", "-A", "smr", "worker", "-Q", "scoring", "-c", "2", "-n", "scoring@%h", "--loglevel=info"]
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A smr inspect ping -d celery@scoring@%h || exit 1"]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 60s
+
+  worker-alerts:
+    <<: *worker-common
+    command: ["celery", "-A", "smr", "worker", "-Q", "alerts,copytrading", "-c", "2", "-n", "alerts@%h", "--loglevel=info"]
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A smr inspect ping -d celery@alerts@%h || exit 1"]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 60s
+
+  beat:
+    <<: *worker-common
+    command: ["celery", "-A", "smr", "beat", "--scheduler", "django_celery_beat.schedulers:DatabaseScheduler", "--loglevel=info"]
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'celery.*beat' >/dev/null || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+networks:
+  smr_internal:
+    driver: overlay
+    attachable: true
+
+volumes:
+  pgdata:
+  redisdata:
+  traefik_letsencrypt:
