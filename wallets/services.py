@@ -83,13 +83,16 @@ def sync_positions(wallet: Wallet, clearinghouse: dict[str, Any]) -> None:
             )
 
 
-def fetch_and_persist_wallet(address: str) -> dict[str, Any]:
+def fetch_and_persist_wallet(address: str, source: str = "manual") -> dict[str, Any]:
     """
     Fetches fills + clearinghouseState for an address and persists both.
     Returns a summary dict. Used by the fetch_wallet management command and
-    by Celery backfill tasks.
+    by Celery backfill tasks (discovery.tasks.backfill_wallet).
+
+    `source` is only used when creating a new Wallet record; if the wallet
+    already exists its discovery_source is not changed.
     """
-    wallet, created = get_or_create_wallet(address)
+    wallet, created = get_or_create_wallet(address, source=source)
     logger.info("%s wallet %s", "Created" if created else "Found", address)
 
     with HyperliquidClient() as client:

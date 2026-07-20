@@ -113,6 +113,20 @@ CELERY_TASK_ROUTES = {
     "alerts.*": {"queue": "alerts"},
 }
 
+# DatabaseScheduler reads this dict on startup and upserts PeriodicTask records.
+# Changes here are applied on the next `celery beat` restart.
+CELERY_BEAT_SCHEDULE = {
+    "discovery-fetch-leaderboard-every-6h": {
+        "task": "discovery.tasks.fetch_leaderboard",
+        "schedule": 6 * 60 * 60,  # 6 hours in seconds
+        "options": {"queue": "discovery"},
+    },
+}
+
+# Discovery Engine tuning (override in .env)
+DISCOVERY_MAX_STREAM_COINS = config("DISCOVERY_MAX_STREAM_COINS", default=20, cast=int)
+DISCOVERY_STREAM_DURATION_SECS = config("DISCOVERY_STREAM_DURATION_SECS", default=300, cast=int)
+
 # Internationalization
 
 LANGUAGE_CODE = "pt-br"
