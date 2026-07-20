@@ -144,6 +144,13 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": 10 * 60,  # 10 minutes in seconds
         "options": {"queue": "tracking"},
     },
+    # PRD §17 — drain unsent Notifications on the 'alerts' queue. V1 just
+    # logs the dispatch; the Telegram integration is the Sprint 6 stretch goal.
+    "alerts-send-pending-notifications-every-1m": {
+        "task": "alerts.tasks.send_pending_notifications",
+        "schedule": 60,  # 1 minute in seconds
+        "options": {"queue": "alerts"},
+    },
 }
 
 # Discovery Engine tuning (override in .env)
@@ -180,6 +187,12 @@ HYPERLIQUID_RATE_LIMIT_WEIGHT_PER_MIN = config(
 
 TELEGRAM_BOT_TOKEN = config("TELEGRAM_BOT_TOKEN", default="")
 TELEGRAM_DEFAULT_CHAT_ID = config("TELEGRAM_DEFAULT_CHAT_ID", default="")
+
+# Alerts — PRD §17. Default cooldown for dedup: same (rule, wallet, event, asset)
+# only fires once per hour. Override via .env for tighter/looser windows.
+ALERT_DEDUP_COOLDOWN_SECONDS = config(
+    "ALERT_DEDUP_COOLDOWN_SECONDS", default=3600, cast=int
+)
 
 # TMT Bridge (born disabled)
 

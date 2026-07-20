@@ -35,27 +35,51 @@ def track_wallet_fills(wallet_address: str) -> dict[str, Any]:
     2. Persist new Fills (dedup by oid)
     3. Open/increase/reduce/close/liquidate Positions according to each fill
 
-    Returns a summary dict {new_fills, updated_positions, closed_positions}.
+    Returns a summary dict carrying:
+      - new_fills / updated_positions / closed_positions (legacy scalar counts)
+      - position_events: list of {action, position_id, asset, side, is_liquidation}
+        for downstream alert evaluation (Sprint 6 — PRD §17). The list is
+        capped by the number of distinct touched positions per tracking cycle.
     """
     address = wallet_address.strip().lower()
     try:
         wallet = Wallet.objects.get(address=address)
     except Wallet.DoesNotExist:
         logger.warning("track_wallet_fills: wallet %s not found", address)
-        return {"address": address, "new_fills": 0, "updated_positions": 0, "closed_positions": 0}
+        return {
+            "address": address,
+            "new_fills": 0,
+            "updated_positions": 0,
+            "closed_positions": 0,
+            "position_events": [],
+        }
 
     raw_fills = _fetch_incremental_fills(wallet)
     if not raw_fills:
         logger.debug("track_wallet_fills %s: no new fills", address)
-        return {"address": address, "new_fills": 0, "updated_positions": 0, "closed_positions": 0}
+        return {
+            "address": address,
+            "new_fills": 0,
+            "updated_positions": 0,
+            "closed_positions": 0,
+            "position_events": [],
+        }
 
     new_fills = _persist_new_fills(wallet, raw_fills)
     if not new_fills:
-        return {"address": address, "new_fills": 0, "updated_positions": 0, "closed_positions": 0}
+        return {
+            "address": address,
+            "new_fills": 0,
+            "updated_positions": 0,
+            "closed_positions": 0,
+            "position_events": [],
+        }
 
     # Apply fills chronologically so position transitions stay consistent.
     new_fills.sort(key=lambda f: f.timestamp)
-    updated_positions, closed_positions = _apply_fills_to_positions(wallet, new_fills)
+    updated_positions, closed_positions, position_events = _apply_fills_to_positions(
+        wallet, new_fills
+    )
 
     # Advance the incremental cursor to the newest fill we just persisted.
     latest_ts = max(f.timestamp for f in new_fills)
@@ -76,6 +100,7 @@ def track_wallet_fills(wallet_address: str) -> dict[str, Any]:
         "new_fills": len(new_fills),
         "updated_positions": updated_positions,
         "closed_positions": closed_positions,
+        "position_events": position_events,
     }
 
 
@@ -122,15 +147,17 @@ def _persist_new_fills(wallet: Wallet, raw_fills: list[dict[str, Any]]) -> list[
 
 def _apply_fills_to_positions(
     wallet: Wallet, fills: list[Fill]
-) -> tuple[int, int]:
+) -> tuple[int, int, list[dict[str, Any]]]:
     """
     Replays each new fill against the wallet's positions. A single Position row
     per (wallet, asset, side) is the source of truth — open is created lazily,
     increases/reduces mutate size, and full flatten (or liquidation) marks it
-    closed with `closed_at`. Returns (updated_count, closed_count).
+    closed with `closed_at`. Returns (updated_count, closed_count,
+    position_events) where position_events feeds the alert pipeline (PRD §17).
     """
     updated_assets: set[tuple[str, str]] = set()
     closed_count = 0
+    position_events: list[dict[str, Any]] = []
 
     for fill in fills:
         side = _fill_position_side(fill)
@@ -139,15 +166,23 @@ def _apply_fills_to_positions(
 
         with transaction.atomic():
             if fill.is_liquidation:
-                closed_count += _handle_liquidation(wallet, fill, side, updated_assets)
+                event = _handle_liquidation(wallet, fill, side, updated_assets)
+                if event:
+                    position_events.append(event)
+                    closed_count += 1
                 continue
 
             if fill.direction == Fill.Direction.OPEN.value:
-                _handle_open(wallet, fill, side, updated_assets)
+                event = _handle_open(wallet, fill, side, updated_assets)
+                if event:
+                    position_events.append(event)
             else:
-                closed_count += _handle_close(wallet, fill, side, updated_assets)
+                event = _handle_close(wallet, fill, side, updated_assets)
+                if event:
+                    position_events.append(event)
+                    closed_count += 1
 
-    return len(updated_assets), closed_count
+    return len(updated_assets), closed_count, position_events
 
 
 def _fill_position_side(fill: Fill) -> str | None:
@@ -170,7 +205,12 @@ def _handle_open(
     fill: Fill,
     side: str,
     touched: set[tuple[str, str]],
-) -> None:
+) -> dict[str, Any] | None:
+    """
+    Returns a position event dict ({action:"opened", position_id, asset, side,
+    is_liquidation}) when a brand-new Position row was created, else None.
+    PRD §17 — new_position only fires on true opens, not on increases.
+    """
     pos = Position.objects.filter(
         wallet=wallet, asset=fill.asset, side=side, status=Position.Status.OPEN.value
     ).first()
@@ -204,17 +244,25 @@ def _handle_open(
             opened_at=fill.timestamp,
             status=Position.Status.OPEN.value,
         )
-    else:
-        # Increase: weighted average entry price.
-        new_size = pos.size + fill_size
-        pos.entry_price = (
-            (pos.entry_price * pos.size + fill.price * fill_size) / new_size
-            if new_size > 0
-            else fill.price
-        )
-        pos.size = new_size
-        pos.save(update_fields=["size", "entry_price", "updated_at"])
+        touched.add((pos.asset, pos.side))
+        return {
+            "action": "opened",
+            "position_id": pos.id,
+            "asset": pos.asset,
+            "side": pos.side,
+            "is_liquidation": False,
+        }
+    # Increase: weighted average entry price.
+    new_size = pos.size + fill_size
+    pos.entry_price = (
+        (pos.entry_price * pos.size + fill.price * fill_size) / new_size
+        if new_size > 0
+        else fill.price
+    )
+    pos.size = new_size
+    pos.save(update_fields=["size", "entry_price", "updated_at"])
     touched.add((pos.asset, pos.side))
+    return None
 
 
 def _handle_close(
@@ -222,7 +270,13 @@ def _handle_close(
     fill: Fill,
     side: str,
     touched: set[tuple[str, str]],
-) -> int:
+) -> dict[str, Any] | None:
+    """
+    Full flattens emit a "closed" event so the alert pipeline can fire
+    position_closed (PRD §17). Partial reductions return None; the PRD's
+    "redução relevante" semantics will require a sizeable-reduction threshold
+    and is intentionally out of scope for the Sprint 6 baseline.
+    """
     pos = Position.objects.filter(
         wallet=wallet, asset=fill.asset, side=side, status=Position.Status.OPEN.value
     ).first()
@@ -230,7 +284,7 @@ def _handle_close(
         # Close arrived without a tracked open (e.g. opened before tracking
         # began). Nothing to mutate; do not crank counter.
         touched.add((fill.asset, side))
-        return 0
+        return None
 
     remaining = pos.size - fill.size
     touched.add((pos.asset, pos.side))
@@ -239,10 +293,16 @@ def _handle_close(
         pos.closed_at = fill.timestamp
         pos.size = Decimal("0")
         pos.save(update_fields=["status", "closed_at", "size", "updated_at"])
-        return 1
+        return {
+            "action": "closed",
+            "position_id": pos.id,
+            "asset": pos.asset,
+            "side": pos.side,
+            "is_liquidation": False,
+        }
     pos.size = remaining
     pos.save(update_fields=["size", "updated_at"])
-    return 0
+    return None
 
 
 def _handle_liquidation(
@@ -250,20 +310,28 @@ def _handle_liquidation(
     fill: Fill,
     side: str,
     touched: set[tuple[str, str]],
-) -> int:
-    """Liquidation forces the position closed regardless of remaining size."""
+) -> dict[str, Any] | None:
+    """Liquidation forces the position closed regardless of remaining size.
+    Always returns a "closed" event with is_liquidation=True so the alert
+    engine can flag this with critical priority."""
     pos = Position.objects.filter(
         wallet=wallet, asset=fill.asset, side=side, status=Position.Status.OPEN.value
     ).first()
     if pos is None:
         touched.add((fill.asset, side))
-        return 0
+        return None
     pos.status = Position.Status.CLOSED.value
     pos.closed_at = fill.timestamp
     pos.size = Decimal("0")
     pos.save(update_fields=["status", "closed_at", "size", "updated_at"])
     touched.add((pos.asset, pos.side))
-    return 1
+    return {
+        "action": "closed",
+        "position_id": pos.id,
+        "asset": pos.asset,
+        "side": pos.side,
+        "is_liquidation": True,
+    }
 
 
 def _opposite(side: str) -> str:

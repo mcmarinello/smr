@@ -24,6 +24,11 @@ from .services import track_wallet_fills
 
 logger = logging.getLogger(__name__)
 
+# alerts.tasks is imported lazily inside the wiring points below because
+# it in turn imports wallets.models; tracking.tasks is loaded eagerly by
+# Celery autodiscovery and pulling alerts at module top could trip an
+# import cycle on fresh processes.
+
 
 @shared_task(
     name="tracking.tasks.track_wallet",
@@ -34,14 +39,25 @@ logger = logging.getLogger(__name__)
 def track_wallet(self, wallet_address: str) -> dict[str, Any]:
     """
     Incremental tracking cycle for a single target wallet (PRD §16.1).
-    resilient to transient HL failures via exponential backoff.
+    resilient to transient HL failures via exponential backoff. After a
+    successful fill ingestion, fans out one process_wallet_alerts job on
+    the 'alerts' queue (Sprint 6 — PRD §17) so new_position /
+    position_closed triggers are evaluated independently.
     """
     try:
-        return track_wallet_fills(wallet_address)
+        summary = track_wallet_fills(wallet_address)
     except Exception as exc:
         logger.exception("track_wallet %s failed: %s", wallet_address, exc)
         countdown = 30 * (2 ** self.request.retries)
         raise self.retry(exc=exc, countdown=countdown)
+
+    if summary.get("position_events"):
+        from alerts.tasks import process_wallet_alerts
+
+        process_wallet_alerts.apply_async(
+            args=[wallet_address, summary], queue="alerts"
+        )
+    return summary
 
 
 @shared_task(name="tracking.tasks.track_all_targets")
@@ -69,10 +85,18 @@ def detect_convergence() -> dict[str, Any]:
     """
     PRD §16.2 — scans recent open fills across every target wallet and
     reports (asset, side) clusters opened by 3+ wallets within 2 hours.
-    The task returns the findings; downstream alert dispatch will hook into
-    this result via the alerts queue in a later sprint.
+    Each cluster fans out to one process_convergence_alert job on the
+    'alerts' queue (Sprint 6 — PRD §17) so per-wallet convergence rules
+    are evaluated independently of the detection cycle.
     """
     clusters = _detect_convergence()
+    if clusters:
+        from alerts.tasks import process_convergence_alert
+
+        for cluster in clusters:
+            process_convergence_alert.apply_async(
+                args=[cluster], queue="alerts"
+            )
     logger.info("detect_convergence: %d cluster(s) flagged", len(clusters))
     return {"clusters": clusters, "count": len(clusters)}
 
