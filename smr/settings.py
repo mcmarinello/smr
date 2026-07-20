@@ -114,6 +114,7 @@ CELERY_TASK_ROUTES = {
     "tracking.*": {"queue": "tracking"},
     "wallets.tasks.*": {"queue": "scoring"},
     "alerts.*": {"queue": "alerts"},
+    "copytrading.*": {"queue": "copytrading"},
 }
 
 # DatabaseScheduler reads this dict on startup and upserts PeriodicTask records.
@@ -153,6 +154,19 @@ CELERY_BEAT_SCHEDULE = {
         "task": "alerts.tasks.send_pending_notifications",
         "schedule": 60,  # 1 minute in seconds
         "options": {"queue": "alerts"},
+    },
+    # PRD §Sprint 8 — Copy Trading (paper). Every 15m fan out one
+    # run_copy_simulation task per active profile on the 'copytrading' queue.
+    "copytrading-run-all-every-15m": {
+        "task": "copytrading.tasks.run_all_copy_simulations",
+        "schedule": 15 * 60,  # 15 minutes in seconds
+        "options": {"queue": "copytrading"},
+    },
+    # PRD §Sprint 8 — time-stop stale open trades once an hour per profile.
+    "copytrading-auto-close-stale-every-1h": {
+        "task": "copytrading.tasks.auto_close_stale_all",
+        "schedule": 60 * 60,  # 1 hour in seconds
+        "options": {"queue": "copytrading"},
     },
 }
 
