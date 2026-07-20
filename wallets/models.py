@@ -209,6 +209,21 @@ class WalletScore(BaseModel):
         default=0,
         validators=[MinValueValidator(0), MaxValueValidator(100)],
     )
+    # PRD §15.4 — second score over the same fills normalized to 1x leverage.
+    # Same 9 components as `score_raw`; only the PnL input stream differs.
+    score_deleveraged = models.DecimalField(
+        max_digits=6,
+        decimal_places=3,
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
+    # PRD §15.4 — (score_raw − score_deleveraged) / max(score_raw, 1).
+    # Negative-indexed to allow "deleveraged better than raw" cases.
+    leverage_dependency_index = models.DecimalField(
+        max_digits=8,
+        decimal_places=6,
+        default=0,
+    )
     classification = models.CharField(
         max_length=10,
         choices=Classification.choices,
@@ -216,6 +231,7 @@ class WalletScore(BaseModel):
         db_index=True,
     )
     component_breakdown = models.JSONField(default=dict, blank=True)
+    component_breakdown_deleveraged = models.JSONField(default=dict, blank=True)
     rank = models.IntegerField(null=True, blank=True, db_index=True)
     metrics_window = models.OneToOneField(
         WalletMetricsWindow,
@@ -230,13 +246,25 @@ class WalletScore(BaseModel):
         unique_together = ("wallet", "window")
         indexes = [
             models.Index(fields=["window", "-score_raw"]),
+            models.Index(fields=["window", "-score_deleveraged"]),
             models.Index(fields=["classification", "window"]),
         ]
         ordering = ["-score_raw"]
 
     def __str__(self) -> str:
-        return f"{self.wallet.address[:8]} {self.window} {self.score_raw}"
+        return (
+            f"{self.wallet.address[:8]} {self.window} "
+            f"raw={self.score_raw} delv={self.score_deleveraged}"
+        )
 
     @property
     def score_raw_float(self) -> float:
         return float(self.score_raw)
+
+    @property
+    def score_deleveraged_float(self) -> float:
+        return float(self.score_deleveraged)
+
+    @property
+    def leverage_dependency_index_float(self) -> float:
+        return float(self.leverage_dependency_index)

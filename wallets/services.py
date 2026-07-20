@@ -18,6 +18,10 @@ from hyperliquid_client.client import HyperliquidClient
 from hyperliquid_client.parsers import parse_fill, parse_position
 from wallet_engine.score import compute_breakdown, classify
 from wallet_engine.metrics import compute_metrics_window
+from wallet_engine.deleveraging import (
+    compute_deleveraged_score,
+    leverage_dependency_index,
+)
 from .models import (
     Wallet,
     Fill,
@@ -223,7 +227,8 @@ def compute_and_persist_scores(
     `market_daily_df` (optional) is BTC daily returns indexed by day, used
     by the market-regime correlation component.
 
-    Returns a summary dict keyed by window -> {score, classification}.
+    Returns a summary dict keyed by window -> {score, score_deleveraged,
+    classification, leverage_dependency_index, total_trades}.
     """
     if now is None:
         now = datetime.now(tz=timezone.utc)
@@ -245,6 +250,20 @@ def compute_and_persist_scores(
         score_value, breakdown = compute_breakdown(metrics)
         score_value = float(max(0.0, min(score_value, 100.0)))
         classification = classify(score_value)
+
+        # PRD §15.4 — dual score: recompute the 9 components over the same
+        # fills normalized to 1x leverage (account_value as capital proxy),
+        # then derive the Leverage Dependency Index from the raw / deleveraged
+        # delta.
+        delv_score_value, delv_breakdown = compute_deleveraged_score(
+            fills_df,
+            window_days=window_days,
+            account_value=account_value,
+            now=now,
+            market_daily_df=market_daily_df,
+        )
+        delv_score_value = float(max(0.0, min(delv_score_value, 100.0)))
+        ldi = leverage_dependency_index(score_value, delv_score_value)
 
         with transaction.atomic():
             mww, _ = WalletMetricsWindow.objects.update_or_create(
@@ -281,8 +300,11 @@ def compute_and_persist_scores(
                 defaults={
                     "computed_at": now,
                     "score_raw": Decimal(str(score_value)),
+                    "score_deleveraged": Decimal(str(delv_score_value)),
+                    "leverage_dependency_index": Decimal(str(ldi)),
                     "classification": classification,
                     "component_breakdown": breakdown,
+                    "component_breakdown_deleveraged": delv_breakdown,
                     "metrics_window": mww,
                     "rank": None,  # recompute_ranks sets it later
                 },
@@ -290,6 +312,8 @@ def compute_and_persist_scores(
 
         results[window_label] = {
             "score": score_value,
+            "score_deleveraged": delv_score_value,
+            "leverage_dependency_index": ldi,
             "classification": classification,
             "total_trades": metrics["total_trades"],
             "metrics_window_id": mww.id,

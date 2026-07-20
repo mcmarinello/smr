@@ -23,7 +23,9 @@ from wallets.services import compute_and_persist_scores
 
 def _format_window_report(window_label: str, summary: dict) -> str:
     return (
-        f"        {window_label:>5s}  score={summary['score']:6.2f}  "
+        f"        {window_label:>5s}  raw={summary['score']:6.2f}  "
+        f"delv={summary['score_deleveraged']:6.2f}  "
+        f"ldi={summary['leverage_dependency_index']:+.3f}  "
         f"{summary['classification']:<8s}  trades={summary['total_trades']:>5d}"
     )
 

@@ -3,7 +3,11 @@ Celery tasks for the Wallet Score Engine — queue: 'scoring' (routed in
 settings.py via CELERY_TASK_ROUTES).
 
 compute_all_scores   — periodic; recomputes scores for every active wallet
-                       across all PRD §15.2 windows
+                       across all PRD §15.2 windows. Piggybacks the
+                       deleveraged score computation (PRD §15.4) — every
+                       WalletScore row gets `score_raw`, `score_deleveraged`
+                       and `leverage_dependency_index` in the same run via
+                       `compute_and_persist_scores`. No separate task needed.
 compute_wallet_scores — one-shot per wallet; can be queued for a freshly
                         promoted target so its rank/labels refresh quickly
 refresh_ranks         — lightweight job; re-ranks WalletScore rows only
