@@ -1,0 +1,90 @@
+{% extends "dashboard/base.html" %}
+{% block title %}SMR — Discovery · Ranking Geral{% endblock %}
+{% block content %}
+<div class="main__header">
+  <div>
+    <h1>Discovery — Ranking Geral</h1>
+    <div class="main__subtitle">Score dual com filtros e ordenação</div>
+  </div>
+</div>
+
+<form class="filters" method="get">
+  <div>
+    <label for="window">Janela</label>
+    <select id="window" name="window" onchange="this.form.submit()">
+      {% for w in windows %}
+        <option value="{{ w.0 }}" {% if w.0 == window %}selected{% endif %}>{{ w.1 }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div>
+    <label for="classification">Classificação</label>
+    <select id="classification" name="classification" onchange="this.form.submit()">
+      <option value="">todas</option>
+      {% for c in classifications %}
+        <option value="{{ c.0 }}" {% if c.0 == classification %}selected{% endif %}>{{ c.1 }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div>
+    <label for="source">Origem</label>
+    <select id="source" name="source" onchange="this.form.submit()">
+      <option value="">todas</option>
+      {% for s in sources %}
+        <option value="{{ s.0 }}" {% if s.0 == source %}selected{% endif %}>{{ s.1 }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div>
+    <label><input type="checkbox" name="target_only" value="1" {% if target_only %}checked{% endif %} onchange="this.form.submit()"> Somente alvos</label>
+  </div>
+
+  <input type="hidden" name="sort" value="{{ sort }}">
+</form>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr>
+          <th>#</th>
+          {% for h in sortable_headers %}
+          <th class="sortable {% if sort_field == h.field %}sort-{{ sort_dir }}{% endif %}">
+            <a href="?window={{ window }}&classification={{ classification }}&source={{ source }}&target_only={% if target_only %}1{% else %}{% endif %}&sort={{ h.flip }}">{{ h.label }}</a>
+          </th>
+          {% endfor %}
+          <th>Classificação</th>
+          <th>Origem</th>
+          <th>Alvo?</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in scores %}
+        <tr>
+          <td class="num">{{ s.rank|default:"—" }}</td>
+          <td>
+            <a class="addr mono" href="{% url 'wallet_profile' s.wallet.address %}">{{ s.wallet.address|truncatechars:14 }}</a>
+          </td>
+          <td class="num">{{ s.score_raw|floatformat:1 }}</td>
+          <td class="num">{{ s.score_deleveraged|floatformat:1 }}</td>
+          <td class="num {% if s.leverage_dependency_index_float > 0.3 %}lev-high{% endif %}">
+            {{ s.leverage_dependency_index|floatformat:3 }}
+          </td>
+          <td><span class="badge badge--{{ s.classification }}">{{ s.get_classification_display }}</span></td>
+          <td>{{ s.wallet.get_discovery_source_display }}</td>
+          <td>
+            {% if s.wallet.is_target %}<span class="badge badge--yes">sim</span>
+            {% else %}<span class="badge badge--no">não</span>{% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8"><div class="empty">Nenhum score encontrado para os filtros atuais.</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

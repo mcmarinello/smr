@@ -1,0 +1,44 @@
+{% extends "dashboard/base.html" %}
+{% block title %}SMR — Alertas · Histórico{% endblock %}
+{% block content %}
+<div class="main__header">
+  <div>
+    <h1>Alertas — Histórico</h1>
+    <div class="main__subtitle">Notificações disparadas pelas regras configuradas</div>
+  </div>
+  <div class="filters" style="margin:0">
+    <a class="btn{% if filter_read == '' %}{% endif %}" style="text-decoration:none" href="{% url 'alerts_history' %}">Todas</a>
+    <a class="btn btn--ghost" style="text-decoration:none" href="{% url 'alerts_history' %}?filter=unread">Não lidas</a>
+    <a class="btn btn--ghost" style="text-decoration:none" href="{% url 'alerts_history' %}?filter=read">Lidas</a>
+  </div>
+</div>
+
+<div class="card">
+  {% if notifications %}
+  <div>
+    {% for n in notifications %}
+    <div class="notif-row">
+      <div class="unread-dot" style="background:{% if n.read %}var(--bg-elev-2){% else %}var(--accent){% endif %}"></div>
+      <div style="flex:1;min-width:0">
+        <div class="notif-title">
+          <span class="badge badge--{{ n.level }}">{{ n.get_level_display }}</span>
+          {{ n.title }}
+        </div>
+        <div style="color:var(--text-dim);font-size:13px;margin-top:2px">{{ n.body|truncatechars:200 }}</div>
+        <div class="notif-meta">
+          {{ n.created_at|date:"d/m/Y H:i" }} UTC · evento: {{ n.event_type }}
+          {% if n.wallet %}· <a href="{% url 'wallet_profile' n.wallet.address %}">{{ n.wallet.address|truncatechars:14 }}</a>{% endif %}
+        </div>
+      </div>
+      <div>
+        {% if n.sent_at %}<span class="badge badge--yes">enviada</span>
+        {% else %}<span class="badge badge--muted">em fila</span>{% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty">Nenhuma notificação para o filtro selecionado.</div>
+  {% endif %}
+</div>
+{% endblock %}

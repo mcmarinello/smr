@@ -1,0 +1,219 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}SMR — Smart Money Radar{% endblock %}</title>
+<style>
+:root {
+  --bg: #0f1117;
+  --bg-elev: #1a1d27;
+  --bg-elev-2: #20242f;
+  --border: #2a2e3a;
+  --text: #e6e8ee;
+  --text-dim: #9aa0ad;
+  --text-mute: #6b7180;
+  --accent: #4f9eff;
+  --accent-2: #6cd0c5;
+  --green: #4ade80;
+  --red: #f87171;
+  --yellow: #facc15;
+  --warn: #fb923c;
+  --radius: 8px;
+  --shadow: 0 2px 8px rgba(0,0,0,.25);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  font-size: 14px; line-height: 1.45; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent-2); }
+h1, h2, h3 { font-weight: 600; margin: 0 0 12px; }
+h1 { font-size: 20px; }
+h2 { font-size: 17px; }
+h3 { font-size: 15px; }
+
+.layout { display: flex; min-height: 100vh; }
+
+/* Sidebar */
+.sidebar {
+  width: 220px; background: var(--bg-elev); border-right: 1px solid var(--border);
+  padding: 18px 0; flex-shrink: 0; display: flex; flex-direction: column;
+}
+.sidebar__brand {
+  padding: 0 20px 18px; font-size: 16px; font-weight: 700; letter-spacing: .5px;
+  color: var(--text);
+}
+.sidebar__brand small { display: block; font-size: 10px; color: var(--text-mute);
+  font-weight: 400; letter-spacing: 1px; text-transform: uppercase; }
+.nav-group { padding: 12px 0; border-top: 1px solid var(--border); }
+.nav-group__label {
+  padding: 4px 20px; font-size: 10px; text-transform: uppercase;
+  color: var(--text-mute); letter-spacing: 1px;
+}
+.nav-link {
+  display: block; padding: 9px 20px; color: var(--text-dim); font-size: 13px;
+  border-left: 2px solid transparent;
+}
+.nav-link:hover { color: var(--text); background: var(--bg-elev-2); }
+.nav-link.active { color: var(--text); border-left-color: var(--accent);
+  background: var(--bg-elev-2); }
+
+.sidebar__footer {
+  margin-top: auto; padding: 12px 20px; border-top: 1px solid var(--border);
+  font-size: 11px; color: var(--text-mute);
+}
+
+/* Main */
+.main { flex: 1; padding: 24px 28px; min-width: 0; }
+.main__header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 22px; flex-wrap: wrap; gap: 12px;
+}
+.main__subtitle { color: var(--text-dim); font-size: 13px; }
+
+/* Cards */
+.card {
+  background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 18px; box-shadow: var(--shadow);
+}
+.card + .card { margin-top: 16px; }
+.card__title {
+  font-size: 13px; color: var(--text-dim); text-transform: uppercase;
+  letter-spacing: .6px; margin-bottom: 12px;
+}
+.grid { display: grid; gap: 16px; }
+.grid--kpi { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.grid--2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+
+.kpi { background: var(--bg-elev); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow); }
+.kpi__label { font-size: 11px; text-transform: uppercase; color: var(--text-mute);
+  letter-spacing: .6px; }
+.kpi__value { font-size: 28px; font-weight: 700; margin-top: 4px; }
+.kpi__hint { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+.kpi__value.warn { color: var(--warn); }
+.kpi__value.good { color: var(--green); }
+.kpi__value.danger { color: var(--red); }
+
+/* Tables */
+.table-wrap { overflow-x: auto; }
+table.data { border-collapse: collapse; width: 100%; font-size: 13px; }
+table.data th, table.data td { padding: 10px 12px; text-align: left;
+  border-bottom: 1px solid var(--border); white-space: nowrap; }
+table.data th { color: var(--text-dim); font-weight: 600; font-size: 11px;
+  text-transform: uppercase; letter-spacing: .5px; background: var(--bg-elev-2); }
+table.data tbody tr:hover { background: var(--bg-elev-2); }
+table.data td.num { font-variant-numeric: tabular-nums; text-align: right; }
+table.data a.addr { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+
+/* Badges */
+.badge {
+  display: inline-block; padding: 2px 8px; border-radius: 999px;
+  font-size: 11px; font-weight: 600; letter-spacing: .3px;
+}
+.badge--elite   { background: rgba(74,222,128,.15); color: var(--green); }
+.badge--bom     { background: rgba(76,158,255,.15); color: var(--accent); }
+.badge--mediano { background: rgba(250,204,21,.15); color: var(--yellow); }
+.badge--fraco   { background: rgba(248,113,113,.15); color: var(--red); }
+.badge--info    { background: rgba(76,158,255,.15); color: var(--accent); }
+.badge--warning { background: rgba(251,146,60,.15); color: var(--warn); }
+.badge--critical{ background: rgba(248,113,113,.18); color: var(--red); }
+.badge--muted   { background: var(--bg-elev-2); color: var(--text-mute); }
+.badge--yes     { background: rgba(74,222,128,.15); color: var(--green); }
+.badge--no      { background: var(--bg-elev-2); color: var(--text-mute); }
+
+/* Filters */
+.filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+  margin-bottom: 16px; }
+.filters label { font-size: 12px; color: var(--text-dim); margin-right: 4px; }
+select, input[type=text], input[type=number] {
+  background: var(--bg-elev-2); color: var(--text); border: 1px solid var(--border);
+  border-radius: 6px; padding: 7px 10px; font-size: 13px; font-family: inherit;
+}
+.btn {
+  background: var(--accent); color: #fff; border: none; border-radius: 6px;
+  padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.btn:hover { background: var(--accent-2); color: #001019; }
+.btn--ghost { background: var(--bg-elev-2); color: var(--text); border: 1px solid var(--border); }
+.btn--ghost:hover { background: var(--border); color: var(--text); }
+
+/* Sortable indicator */
+th.sortable a { color: inherit; display: inline-flex; align-items: center; gap: 3px; }
+th.sortable a:after { content: "↕"; color: var(--text-mute); font-size: 11px; }
+th.sort-asc a:after { content: "▲"; color: var(--accent); }
+th.sort-desc a:after { content: "▼"; color: var(--accent); }
+
+/* Score highlight */
+.lev-high { color: var(--warn); font-weight: 600; }
+
+.empty { color: var(--text-mute); font-style: italic; padding: 18px 0; text-align: center; }
+
+/* Form */
+.form-row { margin-bottom: 14px; }
+.form-row label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 4px; }
+.form-row input { min-width: 240px; }
+
+/* Notification */
+.notif-row { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0;
+  border-bottom: 1px solid var(--border); }
+.notif-row:last-child { border-bottom: none; }
+.notif-title { font-weight: 600; }
+.notif-meta { font-size: 11px; color: var(--text-mute); }
+.unread-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+  margin-top: 6px; flex-shrink: 0; }
+
+.mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+
+@media (max-width: 900px) {
+  .sidebar { width: 56px; }
+  .sidebar__brand { padding-left: 14px; font-size: 14px; }
+  .sidebar__brand small, .nav-link, .nav-group__label, .sidebar__footer { display: none; }
+  .nav-group { padding: 8px 0; }
+}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar__brand">SMR <small>Smart Money Radar</small></div>
+
+    <div class="nav-group">
+      <div class="nav-group__label">Geral</div>
+      <a class="nav-link {% if request.resolver_match.url_name == 'dashboard_home' %}active{% endif %}" href="{% url 'dashboard_home' %}">Visão Geral</a>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group__label">Discovery</div>
+      <a class="nav-link {% if request.resolver_match.url_name == 'discovery_ranking' %}active{% endif %}" href="{% url 'discovery_ranking' %}">Ranking Geral</a>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group__label">Alvos</div>
+      <a class="nav-link {% if request.resolver_match.url_name == 'watchlist' %}active{% endif %}" href="{% url 'watchlist' %}">Watchlist</a>
+      <a class="nav-link {% if request.resolver_match.url_name == 'wallet_profile' %}active{% endif %}" href="#">Carteira</a>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group__label">Alertas</div>
+      <a class="nav-link {% if request.resolver_match.url_name == 'alerts_history' %}active{% endif %}" href="{% url 'alerts_history' %}">Histórico</a>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group__label">Configuração</div>
+      <a class="nav-link {% if request.resolver_match.url_name == 'settings_page' %}active{% endif %}" href="{% url 'settings_page' %}">Settings</a>
+    </div>
+
+    <div class="sidebar__footer">
+      Paper-only · V1 · UTC
+    </div>
+  </aside>
+
+  <main class="main">
+    {% block content %}{% endblock %}
+  </main>
+</div>
+</body>
+</html>

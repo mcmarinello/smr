@@ -1,0 +1,189 @@
+{% extends "dashboard/base.html" %}
+{% block title %}SMR — Carteira {{ wallet.address|slice:":10" }}{% endblock %}
+{% block content %}
+<div class="main__header">
+  <div>
+    <h1 class="mono">{{ wallet.address }}</h1>
+    <div class="main__subtitle">
+      Origem: {{ wallet.get_discovery_source_display }} ·
+      Primeira aparição: {{ wallet.first_seen|date:"d/m/Y H:i" }} UTC
+    </div>
+  </div>
+  <div>
+    {% if wallet.is_target %}<span class="badge badge--yes">Alvo: sim</span>
+    {% else %}<span class="badge badge--no">Alvo: não</span>{% endif %}
+    {% if not wallet.is_active %}<span class="badge badge--muted">inativo</span>{% endif %}
+  </div>
+</div>
+
+<form class="filters" method="get">
+  <div>
+    <label for="window">Janela</label>
+    <select id="window" name="window" onchange="this.form.submit()">
+      {% for w in windows %}
+        <option value="{{ w.0 }}" {% if w.0 == window %}selected{% endif %}>{{ w.1 }}</option>
+      {% endfor %}
+    </select>
+  </div>
+</form>
+
+<div class="grid grid--kpi">
+  <div class="kpi">
+    <div class="kpi__label">Score Raw</div>
+    <div class="kpi__value">{% if current_score %}{{ current_score.score_raw|floatformat:1 }}{% else %}—{% endif %}</div>
+    <div class="kpi__hint">Janela {{ window }}</div>
+  </div>
+
+  <div class="kpi">
+    <div class="kpi__label">Score Deleveraged</div>
+    <div class="kpi__value">{% if current_score %}{{ current_score.score_deleveraged|floatformat:1 }}{% else %}—{% endif %}</div>
+    <div class="kpi__hint">Alavancagem 1×</div>
+  </div>
+
+  <div class="kpi">
+    <div class="kpi__label">Leverage Dependency Index</div>
+    <div class="kpi__value {% if current_score and current_score.leverage_dependency_index_float > 0.3 %}warn{% elif current_score and current_score.leverage_dependency_index_float < 0.1 %}good{% endif %}">
+      {% if current_score %}{{ current_score.leverage_dependency_index|floatformat:3 }}{% else %}—{% endif %}
+    </div>
+    <div class="kpi__hint">
+      {% if current_score and current_score.leverage_dependency_index_float > 0.3 %}alto — edge é alavancada
+      {% elif current_score and current_score.leverage_dependency_index_float < 0.1 %}baixo — edge é skill
+      {% elif current_score %}moderado
+      {% else %}sem score para a janela{% endif %}
+    </div>
+  </div>
+
+  <div class="kpi">
+    <div class="kpi__label">Classificação</div>
+    <div class="kpi__value">
+      {% if current_score %}<span class="badge badge--{{ current_score.classification }}">{{ current_score.get_classification_display }}</span>{% else %}—{% endif %}
+    </div>
+    <div class="kpi__hint">Janela {{ window }}</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card__title">Score por Janela</div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Janela</th><th class="num">Raw</th><th class="num">Deleveraged</th>
+          <th class="num">Lev. Dep.</th><th>Classificação</th><th class="num">Rank</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for w_value, w_label, s in window_scores %}
+        <tr>
+          <td>{{ w_label }}</td>
+          <td class="num">{% if s %}{{ s.score_raw|floatformat:1 }}{% else %}—{% endif %}</td>
+          <td class="num">{% if s %}{{ s.score_deleveraged|floatformat:1 }}{% else %}—{% endif %}</td>
+          <td class="num">{% if s %}{{ s.leverage_dependency_index|floatformat:3 }}{% else %}—{% endif %}</td>
+          <td>{% if s %}<span class="badge badge--{{ s.classification }}">{{ s.get_classification_display }}</span>{% else %}—{% endif %}</td>
+          <td class="num">{% if s %}{{ s.rank|default:"—" }}{% else %}—{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card__title">Breakdown do Score ({{ window }})</div>
+  {% if current_score %}
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr><th>Componente</th><th class="num">Raw</th><th class="num">Delev.</th><th class="num">Peso</th></tr>
+      </thead>
+      <tbody>
+        {% for row in component_rows %}
+        <tr>
+          <td>{{ row.label }}</td>
+          <td class="num">{{ row.raw|floatformat:2 }}</td>
+          <td class="num">{{ row.delv|floatformat:2 }}</td>
+          <td class="num" style="color:var(--text-mute)">{{ row.weight }}</td>
+        </tr>
+        {% endfor %}
+        <tr style="border-top:2px solid var(--border)">
+          <td style="font-weight:600">Total Raw</td>
+          <td class="num" style="font-weight:700">{{ current_score.score_raw|floatformat:2 }}</td>
+          <td colspan="2" class="mono" style="color:var(--text-mute)">/ 100</td>
+        </tr>
+        <tr>
+          <td style="font-weight:600">Total Deleveraged</td>
+          <td class="num" style="font-weight:700">{{ current_score.score_deleveraged|floatformat:2 }}</td>
+          <td colspan="2" class="mono" style="color:var(--text-mute)">/ 100 — PnL normalizado 1×</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty">Sem breakdown disponível para esta janela.</div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card__title">Posições Abertas</div>
+  {% if positions %}
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr><th>Ativo</th><th>Lado</th><th class="num">Tamanho</th><th class="num">Preço Entrada</th><th class="num">Alavancagem</th><th class="num">PnL Não Real.</th><th>Aberto em</th></tr>
+      </thead>
+      <tbody>
+        {% for p in positions %}
+        <tr>
+          <td class="mono">{{ p.asset }}</td>
+          <td>
+            {% if p.side == "long" %}<span class="badge badge--yes">long</span>
+            {% else %}<span class="badge badge--critical">short</span>{% endif %}
+          </td>
+          <td class="num">{{ p.size|floatformat:4 }}</td>
+          <td class="num">{{ p.entry_price|floatformat:6 }}</td>
+          <td class="num">{% if p.leverage %}{{ p.leverage|floatformat:2 }}×{% else %}—{% endif %}</td>
+          <td class="num">{% if p.unrealized_pnl %}{{ p.unrealized_pnl|floatformat:2 }}{% else %}—{% endif %}</td>
+          <td class="mono">{{ p.opened_at|date:"d/m/Y H:i"|default:"—" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty">Nenhuma posição aberta registrada.</div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card__title">Timeline de Fills</div>
+  {% if recent_fills %}
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr><th>Timestamp</th><th>Ativo</th><th>Lado</th><th>Direção</th><th class="num">Tamanho</th><th class="num">Preço</th><th class="num">Fee</th><th class="num">PnL Fechado</th><th>Liq.?</th></tr>
+      </thead>
+      <tbody>
+        {% for f in recent_fills %}
+        <tr>
+          <td class="mono">{{ f.timestamp|date:"d/m/Y H:i:s" }}</td>
+          <td class="mono">{{ f.asset }}</td>
+          <td>
+            {% if f.side == "buy" %}<span class="badge badge--info">buy</span>
+            {% else %}<span class="badge badge--critical">sell</span>{% endif %}
+          </td>
+          <td>{{ f.direction|default:"—" }}</td>
+          <td class="num">{{ f.size|floatformat:4 }}</td>
+          <td class="num">{{ f.price|floatformat:6 }}</td>
+          <td class="num">{{ f.fee|floatformat:4 }}</td>
+          <td class="num">{{ f.closed_pnl|floatformat:2 }}</td>
+          <td>{% if f.is_liquidation %}<span class="badge badge--critical">sim</span>{% else %}—{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty">Nenhum fill registrado.</div>
+  {% endif %}
+</div>
+{% endblock %}

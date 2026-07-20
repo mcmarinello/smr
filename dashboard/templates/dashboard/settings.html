@@ -1,0 +1,73 @@
+{% extends "dashboard/base.html" %}
+{% block title %}SMR — Settings{% endblock %}
+{% block content %}
+<div class="main__header">
+  <div>
+    <h1>Settings</h1>
+    <div class="main__subtitle">Thresholds de promoção e rebaixamento por carteira-alvo (PRD §15.5)</div>
+  </div>
+</div>
+
+{% if wallet and wallet_settings %}
+<div class="card" style="max-width:560px">
+  <div class="card__title">Editando: <span class="mono">{{ wallet.address }}</span></div>
+
+  <form method="post">
+    {% csrf_token %}
+    <div class="form-row">
+      <label for="promotion_threshold">Threshold de Promoção (0–100)</label>
+      <input type="number" id="promotion_threshold" name="promotion_threshold"
+        min="0" max="100" value="{{ wallet_settings.promotion_threshold }}">
+    </div>
+    <div class="form-row">
+      <label for="demotion_threshold">Threshold de Rebaixamento (0–100)</label>
+      <input type="number" id="demotion_threshold" name="demotion_threshold"
+        min="0" max="100" value="{{ wallet_settings.demotion_threshold }}">
+    </div>
+    <div class="form-row">
+      <label for="demotion_consecutive_required">Recálculos Consecutivos para Rebaixar (1–20)</label>
+      <input type="number" id="demotion_consecutive_required" name="demotion_consecutive_required"
+        min="1" max="20" value="{{ wallet_settings.demotion_consecutive_required }}">
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn" type="submit">Salvar</button>
+      <a class="btn btn--ghost" href="{% url 'settings_page' %}">Voltar à lista</a>
+    </div>
+  </form>
+
+  <div style="margin-top:18px;font-size:12px;color:var(--text-mute)">
+    <p>Promoção: ao cruzar <code>score_raw</code> no threshold (em qualquer janela 7d/30d) a carteira vira <strong>alvo</strong> automaticamente.</p>
+    <p>Rebaixamento: ao permanecer abaixo do threshold por N recálculos consecutivos, <code>is_target</code> vira <strong>false</strong>.</p>
+  </div>
+</div>
+{% else %}
+<div class="card">
+  <div class="card__title">Carteiras-alvo</div>
+  {% if target_wallets %}
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr><th>Carteira</th><th>Origem</th><th>Threshold Promoção</th><th>Threshold Rebaixamento</th><th>Consecutivos</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for w, s in target_wallet_pairs %}
+        <tr>
+          <td class="mono">{{ w.address|truncatechars:18 }}</td>
+          <td>{{ w.get_discovery_source_display }}</td>
+          <td class="num">{% if s %}{{ s.promotion_threshold }}{% else %}70 <span style="color:var(--text-mute)">(padrão)</span>{% endif %}</td>
+          <td class="num">{% if s %}{{ s.demotion_threshold }}{% else %}55 <span style="color:var(--text-mute)">(padrão)</span>{% endif %}</td>
+          <td class="num">{% if s %}{{ s.demotion_consecutive_required }}{% else %}3 <span style="color:var(--text-mute)">(padrão)</span>{% endif %}</td>
+          <td><a class="btn btn--ghost" href="{% url 'settings_page' %}?wallet={{ w.address }}">Editar</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6"><div class="empty">Nenhuma carteira-alvo configurada ainda.</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty">Nenhuma carteira-alvo configurada ainda.</div>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

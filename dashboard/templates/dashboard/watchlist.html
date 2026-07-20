@@ -1,0 +1,45 @@
+{% extends "dashboard/base.html" %}
+{% block title %}SMR — Watchlist{% endblock %}
+{% block content %}
+<div class="main__header">
+  <div>
+    <h1>Watchlist</h1>
+    <div class="main__subtitle">Carteiras-alvo (promovidas automaticamente ou adicionadas manualmente)</div>
+  </div>
+</div>
+
+{% if wallets %}
+<div class="grid grid--2">
+  {% for w in wallets %}
+  <a href="{% url 'wallet_profile' w.address %}" style="text-decoration:none;color:inherit">
+    <div class="card" style="margin-top:0">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span class="mono" style="font-size:13px">{{ w.address|truncatechars:18 }}</span>
+        <span class="badge badge--yes">alvo</span>
+      </div>
+      <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--text-dim)">
+        <div>
+          <div style="text-transform:uppercase;letter-spacing:.5px;font-size:10px;color:var(--text-mute)">Raw</div>
+          <div class="num" style="font-size:16px;font-weight:600;color:var(--text)">
+            {{ w.latest_score|floatformat:1|default:"—" }}
+          </div>
+        </div>
+        <div>
+          <div style="text-transform:uppercase;letter-spacing:.5px;font-size:10px;color:var(--text-mute)">Deleveraged</div>
+          <div class="num" style="font-size:16px;font-weight:600;color:var(--text)">
+            {{ w.latest_deleveraged|floatformat:1|default:"—" }}
+          </div>
+        </div>
+        <div>
+          <div style="text-transform:uppercase;letter-spacing:.5px;font-size:10px;color:var(--text-mute)">Origem</div>
+          <div>{{ w.get_discovery_source_display }}</div>
+        </div>
+      </div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card"><div class="empty">Nenhuma carteira-alvo ativa. O motor de promoção eleva carteiras automaticamente quando o score cruza o threshold configurado.</div></div>
+{% endif %}
+{% endblock %}

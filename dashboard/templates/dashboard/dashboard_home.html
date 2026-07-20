@@ -1,0 +1,103 @@
+{% extends "dashboard/base.html" %}
+{% block title %}SMR — Visão Geral{% endblock %}
+{% block content %}
+<div class="main__header">
+  <div>
+    <h1>Visão Geral</h1>
+    <div class="main__subtitle">Painel de monitoramento do universo mapeado</div>
+  </div>
+</div>
+
+<div class="grid grid--kpi">
+  <div class="kpi">
+    <div class="kpi__label">Carteiras Rastreadas</div>
+    <div class="kpi__value">{{ total_wallets }}</div>
+    <div class="kpi__hint">Carteiras ativas no banco</div>
+  </div>
+
+  <div class="kpi">
+    <div class="kpi__label">Alvos Ativos</div>
+    <div class="kpi__value good">{{ active_targets }}</div>
+    <div class="kpi__hint">is_target = true</div>
+  </div>
+
+  <div class="kpi">
+    <div class="kpi__label">Alertas Hoje</div>
+    <div class="kpi__value {{ alerts_today|yesno:'good,' }}">{{ alerts_today }}</div>
+    <div class="kpi__hint">Notificações disparadas hoje</div>
+  </div>
+
+  <div class="kpi">
+    <div class="kpi__label">Não Lidas</div>
+    <div class="kpi__value {{ unread_alerts|yesno:'danger,good' }}">{{ unread_alerts }}</div>
+    <div class="kpi__hint"><a href="{% url 'alerts_history' %}?filter=unread">Ver não lidas →</a></div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:16px">
+  <div class="card__title">Status do Discovery Engine</div>
+  {% if discovery_status %}
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr><th>Fonte</th><th>Descobertos</th><th>Última Varredura</th><th>Em Execução</th><th>Erro</th></tr>
+      </thead>
+      <tbody>
+        {% for src, info in discovery_status.items %}
+        <tr>
+          <td class="mono">{{ src }}</td>
+          <td class="num">{{ info.discovered_count }}</td>
+          <td class="mono">{{ info.last_scan_at|default:"—" }}</td>
+          <td>
+            {% if info.is_running %}
+              <span class="badge badge--warning">rodando</span>
+            {% else %}
+              <span class="badge badge--muted">ocioso</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if info.last_error %}<span class="badge badge--critical">erro</span> {{ info.last_error|truncatechars:60 }}{% else %}—{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty">Nenhuma fonte de discovery registrada ainda.</div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card__title">Alertas Recentes</div>
+  {% if recent_alerts %}
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr><th>Data</th><th>Nível</th><th>Título</th><th>Carteira</th><th>Estado</th></tr>
+      </thead>
+      <tbody>
+        {% for n in recent_alerts %}
+        <tr>
+          <td class="mono">{{ n.created_at|date:"d/m/Y H:i" }}</td>
+          <td><span class="badge badge--{{ n.level }}">{{ n.get_level_display }}</span></td>
+          <td>{{ n.title }}</td>
+          <td>
+            {% if n.wallet %}
+              <a class="addr mono" href="{% url 'wallet_profile' n.wallet.address %}">{{ n.wallet.address|truncatechars:12 }}</a>
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% if n.read %}<span class="badge badge--muted">lida</span>
+            {% else %}<span class="badge badge--info">não lida</span>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty">Nenhum alerta registrado.</div>
+  {% endif %}
+</div>
+{% endblock %}
