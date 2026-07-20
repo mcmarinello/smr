@@ -1,0 +1,70 @@
+version: "3.9"
+
+x-worker-common: &worker-common
+  build: .
+  env_file: .env
+  depends_on:
+    db:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  volumes:
+    - .:/app
+  restart: unless-stopped
+
+services:
+  db:
+    image: timescale/timescaledb:latest-pg16
+    environment:
+      POSTGRES_DB: smr
+      POSTGRES_USER: smr
+      POSTGRES_PASSWORD: smrpass
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smr -d smr"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  web:
+    <<: *worker-common
+    command: python3 manage.py runserver 0.0.0.0:8000
+    ports:
+      - "8000:8000"
+
+  worker_discovery:
+    <<: *worker-common
+    command: celery -A smr worker -Q discovery -c 2 -n discovery@%h --loglevel=info
+
+  worker_tracking:
+    <<: *worker-common
+    command: celery -A smr worker -Q tracking -c 4 -n tracking@%h --loglevel=info
+
+  worker_scoring:
+    <<: *worker-common
+    command: celery -A smr worker -Q scoring -c 2 -n scoring@%h --loglevel=info
+
+  worker_alerts:
+    <<: *worker-common
+    command: celery -A smr worker -Q alerts -c 2 -n alerts@%h --loglevel=info
+
+  beat:
+    <<: *worker-common
+    command: celery -A smr beat --scheduler django_celery_beat.schedulers:DatabaseScheduler --loglevel=info
+
+volumes:
+  pgdata:
+  redisdata:
