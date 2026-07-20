@@ -121,6 +121,17 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": 6 * 60 * 60,  # 6 hours in seconds
         "options": {"queue": "discovery"},
     },
+    "scoring-compute-all-every-1h": {
+        "task": "wallets.tasks.compute_all_scores",
+        "schedule": 60 * 60,  # 1 hour in seconds
+        "options": {"queue": "scoring"},
+        "kwargs": {"target_only": False},
+    },
+    "scoring-refresh-ranks-every-15m": {
+        "task": "wallets.tasks.refresh_ranks",
+        "schedule": 15 * 60,  # 15 minutes in seconds
+        "options": {"queue": "scoring"},
+    },
 }
 
 # Discovery Engine tuning (override in .env)

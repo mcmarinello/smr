@@ -8,7 +8,9 @@ class Migration(migrations.Migration):
     Silently skipped in non-TimescaleDB environments (e.g. local SQLite dev).
     """
 
-    dependencies = [("wallets", "0001_initial")]
+    dependencies = [
+        ("wallets", "0002_rename_wallets_fill_wallet_ts_idx_wallets_fil_wallet__e920e1_idx_and_more"),
+    ]
 
     operations = [
         migrations.RunSQL(
