@@ -62,7 +62,7 @@ class Fill(BaseModel):
     closed_pnl = models.DecimalField(max_digits=30, decimal_places=10)
     timestamp = models.DateTimeField(db_index=True)
     is_liquidation = models.BooleanField(default=False)
-    oid = models.BigIntegerField(unique=True)
+    oid = models.BigIntegerField(db_index=True)
     direction = models.CharField(
         max_length=5, choices=Direction.choices, blank=True
     )
@@ -77,6 +77,7 @@ class Fill(BaseModel):
         indexes = [
             models.Index(fields=["wallet", "timestamp"]),
             models.Index(fields=["wallet", "asset", "timestamp"]),
+            models.Index(fields=["oid"], name="fill_oid_idx"),
         ]
 
     def __str__(self) -> str:
