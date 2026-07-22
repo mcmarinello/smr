@@ -32,4 +32,4 @@ black==25.1.0
 ruff==0.9.10
 
 # Telegram
-python-telegram-bot==21.12.1
+python-telegram-bot==21.8
