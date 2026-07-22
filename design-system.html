@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Language" content="en">
+  <meta name="viewport" content="width=device-width, user-scalable=1">
+  <title>SpaceX — Design System</title>
+  <link rel="icon" type="image/x-icon" href="../images/favicon-spacex.ico">
+
+  <!-- =============================================================== -->
+  <!-- Mesmo CSS usado pelo HTML de referência (reutilizado fielmente). -->
+  <!-- Nenhum token de cor / tipografia / espaçamento é inventado:      -->
+  <!-- tudo vem de css/styles.05babecf1191c860.css.                    -->
+  <!-- =============================================================== -->
+  <link rel="stylesheet" href="../css/styles.05babecf1191c860.css">
+
+  <!-- CSS puramente estrutural da própria documentação (nav fixa e     -->
+  <!-- andaimes de demonstração). NÃO introduz cores, tipografia,       -->
+  <!-- espaçamentos ou gradientes novos — apenas layout/positioning e    -->
+  <!-- reuso de tokens var(--white-*) do CSS original.                  -->
+  <!-- NENHUM atributo style="" é usado no body: tudo virou classe.     -->
+  <style>
+    /* --- nav fixa --- */
+    .ds-nav{
+      position:fixed; top:0; left:0; right:0; z-index:100;
+      display:flex; flex-direction:row; gap:1.5rem;
+      align-items:center; justify-content:flex-start;
+      overflow-x:auto; white-space:nowrap;
+      backdrop-filter:brightness(.6);
+      -webkit-backdrop-filter:brightness(.6);
+      border-bottom:1px solid var(--white-10);
+      padding:0 1.5rem;
+    }
+    .ds-nav a{ text-decoration:none; }
+    .ds-nav a:hover{ color:var(--white-100); }
+    .ds-nav h4{ margin:0; padding:.75rem 0; }
+
+    /* --- scaffold do documento --- */
+    .ds-anchor{ position:relative; }
+    .ds-anchor-clear{ padding-top:4rem; }
+    .ds-wrap{ height:auto; max-width:1100px; margin:0 auto; padding:80px 100px; }
+    .ds-spacer-20{ height:20px; }
+    .ds-spacer-40{ height:40px; }
+    .ds-spacer-80{ height:80px; }
+    .ds-spacer-nav{ height:60px; }
+
+    .ds-frame{ border:1px solid var(--white-15); position:relative; overflow:hidden; }
+    .ds-rows{ display:flex; flex-direction:column; gap:24px; }
+    .ds-row{
+      display:grid; grid-template-columns:1fr auto;
+      align-items:baseline; gap:24px;
+      border-bottom:1px solid var(--white-15); padding-bottom:16px;
+    }
+    .ds-row-last{ border-bottom:none; }
+    .ds-static-center{ position:static; transform:none; width:100%; max-width:none; text-align:left; }
+    .ds-static-left{ position:static; transform:none; width:100%; max-width:none; left:auto; top:auto; }
+
+    .ds-swatch-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); gap:10px; }
+    .ds-swatch{ height:64px; }
+    .ds-swatch-cap{ color:var(--white-60); font-family:'Roboto Mono'; margin-top:6px; }
+
+    .ds-comp-row{ padding:24px; display:flex; gap:48px; align-items:center; flex-wrap:wrap; }
+    .ds-img-demo{ height:220px; }
+    .ds-img-demo p{ color:var(--white-50); align-self:center; }
+
+    .ds-layout-frame{ height:280px; }
+    .ds-layout-frame .section-inner{ height:280px; }
+
+    .ds-motion-frame{ padding:40px; display:flex; flex-direction:column; gap:24px; align-items:flex-start; min-height:260px; }
+    .ds-replay{ cursor:pointer; }
+    .ds-replay.ds-again .reveal-header,
+    .ds-replay.ds-again .reveal-subheader,
+    .ds-replay.ds-again .reveal-button{ animation:none; }
+
+    .ds-overlay-demo{ position:relative; height:180px; display:flex; align-items:center; justify-content:center; }
+    .ds-overlay-demo .overlay{ position:absolute; inset:0; height:100%; width:100%; display:flex; }
+    .ds-overlay-demo .overlay h2{ margin:0 auto; align-self:center; }
+
+    .ds-bgblock{ display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:12px; margin-bottom:40px; }
+    .ds-bgblock .ds-frame{ height:80px; }
+    .ds-bgblock .ds-fill-black{ background-color:#000; }
+
+    /* --- tokens de texto reaproveitados (var do CSS original) --- */
+    .ds-label{ color:var(--white-60); margin-bottom:8px; }
+    .ds-spec{ font-family:'Roboto Mono'; color:var(--white-60); }
+    .ds-mono{ font-family:'Roboto Mono'; }
+    .ds-mut{ color:var(--white-70); }
+    .ds-dim{ color:var(--white-60); }
+    .ds-faint{ color:var(--white-50); }
+    .ds-bold{ font-family:D-DIN-Bold; }
+    .ds-up{ text-transform:uppercase; }
+
+    /* --- utilitários de espaçamento do scaffold --- */
+    .ds-mb-8{ margin-bottom:8px; }
+    .ds-mb-12{ margin-bottom:12px; }
+    .ds-mb-16{ margin-bottom:16px; }
+    .ds-mb-24{ margin-bottom:24px; }
+    .ds-mb-32{ margin-bottom:32px; }
+    .ds-mb-40{ margin-bottom:40px; }
+    .ds-mt-24{ margin-top:24px; }
+    .ds-mt-32{ margin-top:32px; }
+
+    /* --- bordas divisoras reutilizadas dos tokens originais --- */
+    .ds-border-10{ border:1px solid var(--white-10); }
+    .ds-border-15{ border:1px solid var(--white-15); }
+    .ds-border-25{ border:1px solid var(--white-25); }
+
+    /* --- swatches: background reaproveita variáveis do CSS original --- */
+    .ds-white-100{ background:var(--white-100); }
+    .ds-white-90{ background:var(--white-90); }
+    .ds-white-80{ background:var(--white-80); }
+    .ds-white-70{ background:var(--white-70); }
+    .ds-white-60{ background:var(--white-60); }
+    .ds-white-50{ background:var(--white-50); }
+    .ds-white-35{ background:var(--white-35); }
+    .ds-white-30{ background:var(--white-30); }
+    .ds-white-15{ background:var(--white-15); }
+    .ds-white-10{ background:var(--white-10); }
+    .ds-black-80{ background:var(--black-80); }
+    .ds-black-50{ background:var(--black-50); }
+    .ds-gray-80{ background:var(--gray-80); }
+    .ds-gray-60{ background:var(--gray-60); }
+    .ds-gray-40{ background:var(--gray-40); }
+  </style>
+</head>
+
+<body class="app-background">
+
+  <!-- ============================ NAV FIXA (âncoras) ============================ -->
+  <nav class="ds-nav">
+    <a href="#hero"        class="link-white"><h4>Hero</h4></a>
+    <a href="#typography"  class="link-white"><h4>Tipografia</h4></a>
+    <a href="#colors"      class="link-white"><h4>Cores &amp; Superfícies</h4></a>
+    <a href="#components"  class="link-white"><h4>Componentes</h4></a>
+    <a href="#layout"      class="link-white"><h4>Layout &amp; Espaçamento</h4></a>
+    <a href="#motion"      class="link-white"><h4>Motion &amp; Interação</h4></a>
+  </nav>
+
+  <div class="ds-spacer-nav"></div>
+
+
+  <!-- ========================================================================== -->
+  <!-- SEÇÃO 0 — HERO (Clone exato da estrutura do site original)                   -->
+  <!-- Estrutura: .section > .section-inner > .image-wrapper + .inner-center       -->
+  <!-- Texto do hero trocado para apresentar o Design System (única alteração).    -->
+  <!-- ========================================================================== -->
+  <section id="hero" class="ds-anchor section">
+    <div class="section-inner">
+      <!-- .image-wrapper: mesma classe do original. Sem asset de hero salvo,     -->
+      <!-- mantém o background-color:#000 definido na própria classe.              -->
+      <div class="image-wrapper"></div>
+      <div class="inner-center">
+        <h1 class="reveal-header">SpaceX Design System</h1>
+        <p class="reveal-subheader">A living library of tokens, type, layout &amp; motion</p>
+        <p class="reveal-button"><a href="#typography" class="link-white">Explore the patterns ↓</a></p>
+      </div>
+    </div>
+  </section>
+
+  <div class="ds-spacer-20"></div>
+
+
+  <!-- ========================================================================== -->
+  <!-- SEÇÃO 1 — TIPOGRAFIA                                                        -->
+  <!-- Apenas estilos que existem no CSS original: h1,h2,h3,h4,p,                 -->
+  <!-- D-DIN / D-DIN-Bold / Roboto Mono + variantes contextuais (inner-center,    -->
+  <!-- inner-left-middle, hero, inner-center-top).                                 -->
+  <!-- ========================================================================== -->
+  <section id="typography" class="ds-anchor ds-anchor-clear">
+    <div class="section">
+      <div class="ds-wrap">
+        <h2 class="ds-mb-40">Tipografia</h2>
+        <p class="ds-mut ds-mb-40">Famílias: <span class="ds-bold">D-DIN</span>, <span class="ds-bold">D-DIN-Bold</span>, <span class="ds-mono">Roboto Mono</span></p>
+
+        <div class="ds-rows">
+
+          <div class="ds-row">
+            <div>
+              <h4 class="ds-label">Heading 1 — &lt;h1&gt;</h4>
+              <h1>Design System</h1>
+            </div>
+            <span class="ds-spec">48px / 45.6px — 3rem @ 95%</span>
+          </div>
+
+          <div class="ds-row">
+            <div>
+              <h4 class="ds-label">Heading 1 — .inner-center h1 (hero)</h4>
+              <div class="inner-center ds-static-center">
+                <h1>STARSHIP</h1>
+              </div>
+            </div>
+            <span class="ds-spec">100px</span>
+          </div>
+
+          <div class="ds-row">
+            <div>
+              <h4 class="ds-label">Heading 2 — &lt;h2&gt;</h4>
+              <div class="inner-left-middle ds-static-left">
+                <h2>Falcon 9</h2>
+              </div>
+            </div>
+            <span class="ds-spec">48px / 48px — 3rem</span>
+          </div>
+
+          <div class="ds-row">
+            <div>
+              <h4 class="ds-label">Heading 2 — .hero h2</h4>
+              <div class="hero ds-static-left">
+                <h2>Dragon</h2>
+              </div>
+            </div>
+            <span class="ds-spec">80px / 76px — 5rem @ 95%</span>
+          </div>
+
+          <div class="ds-row">
+            <div>
+              <h4 class="ds-label">Heading 3 — &lt;h3&gt;</h4>
+              <h3>Section label</h3>
+            </div>
+            <span class="ds-spec">20px — 1.25rem</span>
+          </div>
+
+          <div class="ds-row">
+            <div>
+              <h4 class="ds-label">Heading 4 — &lt;h4&gt;</h4>
+              <h4>Caption / eyebrow</h4>
+            </div>
+            <span class="ds-spec">inherit (uppercase)</span>
+          </div>
+
+          <div class="ds-row">
+            <div>
+              <h4 class="ds-label">Paragraph — &lt;p&gt; (body)</h4>
+              <p>SpaceX designs, manufactures and launches advanced rockets and spacecraft.</p>
+            </div>
+            <span class="ds-spec">16px / 26px — 1rem / 1.5rem</span>
+          </div>
+
+          <div class="ds-row">
+            <div>
+              <h4 class="ds-label">Paragraph — .inner-center p (uppercase)</h4>
+              <div class="inner-center ds-static-center">
+                <p>Current mission</p>
+              </div>
+            </div>
+            <span class="ds-spec">20px / 30px — D-DIN-Regular</span>
+          </div>
+
+          <div class="ds-row ds-row-last">
+            <div>
+              <h4 class="ds-label">Mono — Roboto Mono (uso: metadados)</h4>
+              <p class="ds-mono ds-mut">48px / 45.6px</p>
+            </div>
+            <span class="ds-spec">mono spec</span>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="ds-spacer-40"></div>
+
+
+  <!-- ========================================================================== -->
+  <!-- SEÇÃO 2 — CORES E SUPERFÍCIES                                               -->
+  <!-- Reutiliza exatamente os tokens --white-* / --black-* / --gray-* e o        -->
+  <!-- background-color:#000 de .app-background.                                   -->
+  <!-- ========================================================================== -->
+  <section id="colors" class="ds-anchor ds-anchor-clear">
+    <div class="section">
+      <div class="ds-wrap">
+        <h2 class="ds-mb-40">Cores &amp; Superfícies</h2>
+
+        <h3 class="ds-dim ds-mb-16">Background — .app-background</h3>
+        <div class="ds-bgblock">
+          <div class="ds-frame ds-fill-black"></div>
+          <div>
+            <p>background-color #000 da página</p>
+            <p class="ds-mono ds-mut">body.app-background</p>
+          </div>
+        </div>
+
+        <h3 class="ds-dim ds-mb-16">Bordas / divisores / overlays</h3>
+        <p class="ds-mut ds-mb-24">Apenas opacidades de branco são usadas como divisores (--white-10, --white-15). Overlay com <code class="ds-mono">backdrop-filter:brightness(.5)</code></p>
+        <div class="ds-swatch-grid ds-mb-40">
+          <div><div class="ds-frame ds-swatch ds-border-10"></div></div>
+          <div><div class="ds-frame ds-swatch ds-border-15"></div></div>
+          <div><div class="ds-frame ds-swatch ds-border-25"></div></div>
+        </div>
+
+        <h3 class="ds-dim ds-mb-16">Swatches — escala --white-*</h3>
+        <div class="ds-swatch-grid">
+          <div><div class="ds-frame ds-swatch ds-white-100"></div><p class="ds-swatch-cap">--white-100</p></div>
+          <div><div class="ds-frame ds-swatch ds-white-90"></div><p class="ds-swatch-cap">--white-90</p></div>
+          <div><div class="ds-frame ds-swatch ds-white-80"></div><p class="ds-swatch-cap">--white-80</p></div>
+          <div><div class="ds-frame ds-swatch ds-white-70"></div><p class="ds-swatch-cap">--white-70</p></div>
+          <div><div class="ds-frame ds-swatch ds-white-60"></div><p class="ds-swatch-cap">--white-60</p></div>
+          <div><div class="ds-frame ds-swatch ds-white-50"></div><p class="ds-swatch-cap">--white-50</p></div>
+          <div><div class="ds-frame ds-swatch ds-white-35"></div><p class="ds-swatch-cap">--white-35</p></div>
+          <div><div class="ds-frame ds-swatch ds-white-30"></div><p class="ds-swatch-cap">--white-30</p></div>
+          <div><div class="ds-frame ds-swatch ds-white-15"></div><p class="ds-swatch-cap">--white-15</p></div>
+          <div><div class="ds-frame ds-swatch ds-white-10"></div><p class="ds-swatch-cap">--white-10</p></div>
+        </div>
+
+        <h3 class="ds-dim ds-mb-16 ds-mt-24">Swatches --black-* / --gray-*</h3>
+        <div class="ds-swatch-grid">
+          <div><div class="ds-frame ds-swatch ds-black-80"></div><p class="ds-swatch-cap">--black-80</p></div>
+          <div><div class="ds-frame ds-swatch ds-black-50"></div><p class="ds-swatch-cap">--black-50</p></div>
+          <div><div class="ds-frame ds-swatch ds-gray-80"></div><p class="ds-swatch-cap">--gray-80</p></div>
+          <div><div class="ds-frame ds-swatch ds-gray-60"></div><p class="ds-swatch-cap">--gray-60</p></div>
+          <div><div class="ds-frame ds-swatch ds-gray-40"></div><p class="ds-swatch-cap">--gray-40</p></div>
+        </div>
+
+        <p class="ds-faint ds-mono ds-mt-24">// Nenhum gradiente está definido no CSS de referência.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="ds-spacer-40"></div>
+
+
+  <!-- ========================================================================== -->
+  <!-- SEÇÃO 3 — COMPONENTES DE UI                                                 -->
+  <!-- O CSS de referência NÃO define botões, inputs, cards ou ícones.            -->
+  <!-- Os únicos elementos de UI estilizados são: links (.link-white a,            -->
+  <!-- .innerhtml-from-cms a) com estados default/hover, e a superfície de imagem.  -->
+  <!-- ========================================================================== -->
+  <section id="components" class="ds-anchor ds-anchor-clear">
+    <div class="section">
+      <div class="ds-wrap">
+        <h2 class="ds-mb-16">Componentes</h2>
+        <p class="ds-mut ds-mb-40">O CSS de referência estiliza apenas links e a superfície de imagem; não há classes para botões, inputs ou cards.</p>
+
+        <h3 class="ds-dim ds-mb-16">Link — .link-white a / .innerhtml-from-cms a</h3>
+        <div class="ds-frame ds-comp-row">
+          <div class="link-white"><a href="#components">Default link</a></div>
+          <div class="innerhtml-from-cms"><a href="#components">Hover me (passa para #ccc)</a></div>
+          <div class="innerhtml-from-cms-underline"><a href="#components">Underlined emphasis link</a></div>
+          <div class="no-link-formatting"><a href="#components">No-formatting link</a></div>
+        </div>
+
+        <h3 class="ds-dim ds-mb-16 ds-mt-32">Superfície de imagem — .image-wrapper</h3>
+        <div class="ds-frame ds-img-demo">
+          <div class="image-wrapper"><p>.image-wrapper — background #000, cover/center, overflow hidden</p></div>
+        </div>
+
+        <h3 class="ds-dim ds-mb-16 ds-mt-32">Highlighted keyword (busca de carreiras)</h3>
+        <p class="ds-mut">.highlighted-keyword — <span class="highlighted-keyword">software</span> dentro de career-search-tile/sidebar.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="ds-spacer-40"></div>
+
+
+  <!-- ========================================================================== -->
+  <!-- SEÇÃO 4 — LAYOUT E ESPAÇAMENTO                                              -->
+  <!-- Demonstra .section / .section-inner (max-width 1400px, height                -->
+  <!-- max(100vh,941px)) + 3 padrões posicionais reais do original:                 -->
+  <!-- inner-center, inner-left-bottom, inner-right-middle.                         -->
+  <!-- ========================================================================== -->
+  <section id="layout" class="ds-anchor ds-anchor-clear">
+    <div class="section">
+      <div class="ds-wrap">
+        <h2 class="ds-mb-16">Layout &amp; Espaçamento</h2>
+        <p class="ds-mut ds-mb-32">
+          Container base: <code class="ds-mono">.section-inner</code> — max-width <span class="ds-bold">1400px</span>,
+          height <code class="ds-mono">max(100vh, 941px)</code>, margem 0 auto. Cada slide = full-height.
+        </p>
+
+        <h3 class="ds-dim ds-mb-12">Padrão 1 — .inner-center (hero centralizado)</h3>
+        <div class="ds-frame ds-layout-frame ds-mb-32">
+          <div class="section-inner">
+            <div class="inner-center">
+              <h1>Centered</h1>
+              <p>Subtitle uppercase</p>
+            </div>
+          </div>
+        </div>
+
+        <h3 class="ds-dim ds-mb-12">Padrão 2 — .inner-left-bottom</h3>
+        <div class="ds-frame ds-layout-frame ds-mb-32">
+          <div class="section-inner">
+            <div class="inner-left-bottom">
+              <h2>Bottom-left</h2>
+              <p>max-width 520px, left:100px, bottom:15%</p>
+            </div>
+          </div>
+        </div>
+
+        <h3 class="ds-dim ds-mb-12">Padrão 3 — .inner-right-middle</h3>
+        <div class="ds-frame ds-layout-frame">
+          <div class="section-inner">
+            <div class="inner-right-middle">
+              <h2>Right-middle</h2>
+              <p>right:100px, transform translateY(-50%)</p>
+            </div>
+          </div>
+        </div>
+
+        <h3 class="ds-dim ds-mb-12 ds-mt-32">Demais posicionamentos disponíveis</h3>
+        <p class="ds-mut ds-mono">
+          .inner-left-middle · .inner-left-middle-compact · .inner-left-top ·<br>
+          .inner-right-bottom · .inner-right-top · .inner-right-topmost ·<br>
+          .inner-center-top · .inner-center-topmost · .hero (max-width 696px)
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <div class="ds-spacer-40"></div>
+
+
+  <!-- ========================================================================== -->
+  <!-- SEÇÃO 5 — MOTION E INTERAÇÃO                                                -->
+  <!-- Reutiliza exatamente as keyframes/classes do CSS original:                   -->
+  <!-- reveal-header, reveal-subheader, reveal-button e a transition do overlay.    -->
+  <!-- ========================================================================== -->
+  <section id="motion" class="ds-anchor ds-anchor-clear">
+    <div class="section">
+      <div class="ds-wrap">
+        <h2 class="ds-mb-40">Motion &amp; Interação</h2>
+
+        <h3 class="ds-dim ds-mb-8">Animações de entrada (reveal)</h3>
+        <p class="ds-mut ds-mb-24">Clique no bloco para reexecutar a animação (re-trigger).</p>
+
+        <div class="ds-frame ds-replay ds-motion-frame ds-mb-24" onclick="this.classList.toggle('ds-again'); void this.offsetWidth; this.classList.remove('ds-again');">
+          <h1 class="reveal-header">reveal-header</h1>
+          <p class="reveal-subheader">reveal-subheader — delay .5s</p>
+          <p class="reveal-button"><span class="ds-bold ds-up">reveal-button — delay 1s</span></p>
+        </div>
+
+        <h3 class="ds-dim ds-mb-12 ds-mt-24">Keyframes @hide</h3>
+        <p class="ds-mut ds-mono ds-mb-24">@keyframes hide { 0%{opacity:1} 50%{opacity:1} 60%{opacity:0} to{opacity:0} }</p>
+
+        <h3 class="ds-dim ds-mb-16">Overlay — .overlay</h3>
+        <p class="ds-mut ds-mb-16">backdrop-filter:brightness(.5); z-index:10; full-viewport; centra conteúdo.</p>
+        <div class="ds-frame ds-overlay-demo">
+          <div class="overlay">
+            <h2>Overlay content</h2>
+          </div>
+        </div>
+
+        <h3 class="ds-dim ds-mb-8 ds-mt-32">Especificações originais</h3>
+        <p class="ds-mut ds-mono">
+          reveal-header: .75s ease-in-out<br>
+          reveal-subheader: .75s ease-in-out, delay .5s, fill-mode backwards<br>
+          reveal-button: .75s ease-in-out, delay 1s, fill-mode backwards<br>
+          overlay backdrop: transition opacity .4s cubic-bezier(.25,.8,.25,1)
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <div class="ds-spacer-80"></div>
+
+  <!-- ========================================================================== -->
+  <!-- Os mesmos assets JS do HTML original são referenciados (regra 3).            -->
+  <!-- Observação: o Angular bootstrap procura <app-root>, ausente aqui, de modo     -->
+  <!-- que apenas o design system acima permanece renderizado.                       -->
+  <!-- ========================================================================== -->
+  <script src="../js/environment.js"></script>
+  <script src="../js/runtime.7a52c3ccaf6e7cc5.js" type="module"></script>
+  <script src="../js/polyfills.08b6611321d68f0c.js" type="module"></script>
+  <script src="../js/scripts.01b0f11147816cbb.js" defer></script>
+  <script src="../js/vendor.982305ce2f8e1318.js" type="module"></script>
+  <script src="../js/main.471cc3499a84e517.js" type="module"></script>
+</body>
+</html>
