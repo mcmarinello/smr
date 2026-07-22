@@ -5,212 +5,208 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>KageTrade — Smart Money Radar</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-:root{--black:#000;--surface:#080808;--card:#0d0d0d;--card-hover:#141414;--border:rgba(255,255,255,.08);--white:#fff;--white-90:rgba(255,255,255,.9);--white-70:rgba(255,255,255,.7);--white-50:rgba(255,255,255,.5);--white-30:rgba(255,255,255,.3);--accent:#4f9eff;--accent-dim:rgba(79,158,255,.12)}
-html{scroll-behavior:smooth}
-body{font-family:Inter,system-ui,sans-serif;background:var(--black);color:var(--white);-webkit-font-smoothing:antialiased;overflow-x:hidden}
-a{color:inherit;text-decoration:none}
-
-/* ─── NAV ─── */
-.nav{position:fixed;top:0;left:0;right:0;z-index:50;height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(1.5rem,4vw,3rem);background:rgba(0,0,0,.8);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border)}
-.nav-logo{font-size:1.1rem;font-weight:800;letter-spacing:2px;text-transform:uppercase}
-.nav-logo b{color:var(--accent)}
-.nav-right{display:flex;align-items:center;gap:2.5rem}
-.nav-links{display:flex;gap:2rem}
-.nav-links a{font-size:.82rem;font-weight:500;color:var(--white-70);text-transform:uppercase;letter-spacing:1.2px;transition:color .2s}
-.nav-links a:hover{color:var(--white)}
-.nav-cta{display:inline-flex;align-items:center;padding:.55rem 1.3rem;border-radius:6px;background:var(--white);color:var(--black);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;transition:opacity .2s}
-.nav-cta:hover{opacity:.85}
-
-/* ─── HERO ─── */
-.hero{position:relative;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:100px 2rem 60px;overflow:hidden}
-.hero::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 50% 45%,rgba(79,158,255,.06),transparent 70%);pointer-events:none}
-.hero-tag{display:inline-flex;align-items:center;gap:.5rem;margin-bottom:2rem;font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:var(--accent);border:1px solid rgba(79,158,255,.25);padding:.45rem 1rem;border-radius:100px;background:rgba(79,155,255,.06)}
-.hero-tag::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);animation:blink 2.5s infinite}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
-.hero h1{font-size:clamp(2.8rem,7vw,5.5rem);font-weight:900;line-height:1.05;letter-spacing:-.04em;max-width:900px;margin:0 auto 1.8rem;text-transform:uppercase}
-.hero h1 em{font-style:normal;background:linear-gradient(135deg,var(--accent),#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.hero-sub{font-size:clamp(.95rem,1.5vw,1.15rem);color:var(--white-50);max-width:520px;margin:0 auto 3rem;line-height:1.6;font-weight:400}
-.hero-btns{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap}
-.btn-lg{display:inline-flex;align-items:center;gap:.5rem;padding:.85rem 2.2rem;border-radius:6px;font-size:.85rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;transition:all .2s}
-.btn-fill{background:var(--white);color:var(--black)}
-.btn-fill:hover{background:rgba(255,255,255,.88)}
-.btn-outline{border:1px solid var(--white-30);color:var(--white)}
-.btn-outline:hover{border-color:var(--white-50);background:rgba(255,255,255,.04)}
-
-/* ─── STATS ─── */
-.stats{display:flex;justify-content:center;gap:clamp(2rem,5vw,5rem);padding:4rem 2rem;border-top:1px solid var(--border);border-bottom:1px solid var(--border);flex-wrap:wrap}
-.stat-num{font-size:clamp(1.8rem,3vw,2.4rem);font-weight:800;color:var(--white);letter-spacing:-.02em}
-.stat-label{font-size:.75rem;color:var(--white-50);text-transform:uppercase;letter-spacing:1.5px;margin-top:.3rem}
-
-/* ─── SECTIONS ─── */
-.section{padding:clamp(4rem,8vw,7rem) clamp(1.5rem,4vw,3rem);max-width:1200px;margin:0 auto}
-.section-title{text-align:center;margin-bottom:3.5rem}
-.section-title h2{font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:800;text-transform:uppercase;letter-spacing:-.02em;margin-bottom:.8rem}
-.section-title p{color:var(--white-50);font-size:1rem;max-width:480px;margin:0 auto;line-height:1.6}
-
-/* ─── FEATURES ─── */
-.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden}
-.feat{padding:2.5rem 2rem;background:var(--black);transition:background .25s}
-.feat:hover{background:var(--card)}
-.feat-icon{width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:1.5rem;background:var(--accent-dim)}
-.feat-icon svg{width:20px;height:20px;stroke:var(--accent);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
-.feat h3{font-size:.95rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:.6rem}
-.feat p{font-size:.88rem;color:var(--white-50);line-height:1.6}
-
-/* ─── STEPS ─── */
-.steps-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:2rem}
-.step{text-align:center;padding:2rem 1.5rem}
-.step-num{font-size:3rem;font-weight:900;color:var(--accent);opacity:.25;line-height:1;margin-bottom:1rem}
-.step h3{font-size:.9rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:.5rem}
-.step p{font-size:.85rem;color:var(--white-50);line-height:1.5}
-
-/* ─── PRICING ─── */
-.plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden;max-width:700px;margin:0 auto}
-.plan{padding:3rem 2.5rem;background:var(--black);position:relative}
-.plan.hot{background:var(--card)}
-.plan-badge{position:absolute;top:1.5rem;right:1.5rem;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;padding:.3rem .8rem;border-radius:100px;background:var(--accent);color:var(--black)}
-.plan h3{font-size:1rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem}
-.plan-price{font-size:2.5rem;font-weight:900;letter-spacing:-.03em;margin:.8rem 0 .2rem}
-.plan-price small{font-size:.85rem;font-weight:400;color:var(--white-50)}
-.plan-note{font-size:.8rem;color:var(--white-30);margin-bottom:1.5rem}
-.plan-list{list-style:none;margin-bottom:2rem}
-.plan-list li{padding:.45rem 0;font-size:.85rem;color:var(--white-70);display:flex;align-items:center;gap:.6rem}
-.plan-list li::before{content:"";width:4px;height:4px;border-radius:50%;background:var(--accent);flex-shrink:0}
-.btn-plan{display:block;width:100%;padding:.75rem;border-radius:6px;font-size:.82rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;text-align:center;transition:all .2s}
-.btn-plan-fill{background:var(--white);color:var(--black)}
-.btn-plan-fill:hover{background:rgba(255,255,255,.88)}
-.btn-plan-outline{border:1px solid var(--white-30);color:var(--white)}
-.btn-plan-outline:hover{border-color:var(--white-50);background:rgba(255,255,255,.04)}
-
-/* ─── CTA ─── */
-.cta{text-align:center;padding:clamp(5rem,10vw,8rem) 2rem;position:relative}
-.cta::before{content:"";position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(79,158,255,.05),transparent 70%);pointer-events:none}
-.cta h2{font-size:clamp(2rem,4vw,3rem);font-weight:900;text-transform:uppercase;letter-spacing:-.03em;margin-bottom:1rem;position:relative}
-.cta p{color:var(--white-50);margin-bottom:2.5rem;font-size:1rem;position:relative}
-
-/* ─── FOOTER ─── */
-footer{padding:2rem;text-align:center;border-top:1px solid var(--border);font-size:.75rem;color:var(--white-30);letter-spacing:.5px}
-
-@media(max-width:768px){.nav-links{display:none}.stats{gap:1.5rem}.hero h1{font-size:2.4rem}}
+body{background:#040a09;font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:#e8fffb}
+a{text-decoration:none}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+@keyframes radarSweep{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes blipPing{0%{transform:scale(.6);opacity:0}30%{opacity:1}70%{opacity:.5}100%{transform:scale(2.6);opacity:0}}
+@keyframes blipDot{0%,100%{opacity:.5}50%{opacity:1}}
+@keyframes pulseLine1{0%{left:-6%;opacity:0}10%{opacity:1}90%{opacity:1}100%{left:106%;opacity:0}}
+@keyframes pulseLine2{0%{left:-6%;opacity:0}15%{opacity:1}90%{opacity:1}100%{left:106%;opacity:0}}
+@keyframes tickerScroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@keyframes barPulse{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1)}}
+@keyframes ringPing{0%{transform:scale(.8);opacity:.8}100%{transform:scale(2.2);opacity:0}}
+@keyframes drawLine{from{stroke-dashoffset:220}to{stroke-dashoffset:0}}
+@keyframes scanMove{from{background-position-y:0}to{background-position-y:40px}}
 </style>
 </head>
 <body>
-
-<nav class="nav">
-  <a href="/" class="nav-logo"><b>KAGE</b>TRADE</a>
-  <div class="nav-right">
-    <div class="nav-links">
-      <a href="#features">Features</a>
-      <a href="#como">Como Funciona</a>
-      <a href="#precos">Precos</a>
+<div style="background:#040a09;min-height:100vh;background-image:repeating-linear-gradient(0deg,rgba(45,212,191,.025) 0px,rgba(45,212,191,.025) 1px,transparent 1px,transparent 40px);animation:scanMove 6s linear infinite">
+<nav style="height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 40px;background:rgba(2,8,7,.85);border-bottom:1px solid rgba(45,212,191,.15)">
+  <a href="/" style="color:#e8fffb;font-size:1.05rem;font-weight:800;letter-spacing:2px;text-transform:uppercase"><b style="color:#2dd4bf">KAGE</b>TRADE</a>
+  <div style="display:flex;align-items:center;gap:40px">
+    <div style="display:flex;gap:32px">
+      <a href="#features" style="font-size:.8rem;font-weight:500;color:rgba(232,255,251,.65);text-transform:uppercase;letter-spacing:1.2px">Features</a>
+      <a href="#como" style="font-size:.8rem;font-weight:500;color:rgba(232,255,251,.65);text-transform:uppercase;letter-spacing:1.2px">Como Funciona</a>
+      <a href="#precos" style="font-size:.8rem;font-weight:500;color:rgba(232,255,251,.65);text-transform:uppercase;letter-spacing:1.2px">Precos</a>
     </div>
-    <a href="/login/" class="nav-cta">Entrar</a>
+    <a href="/login/" style="display:inline-flex;align-items:center;padding:.55rem 1.3rem;border-radius:6px;background:#2dd4bf;color:#00201c;font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:1px">Entrar</a>
   </div>
 </nav>
 
-<section class="hero">
-  <div class="hero-tag">Monitoramento em tempo real</div>
-  <h1>Acompanhe o <em>Smart Money</em> antes de todo mundo</h1>
-  <p class="hero-sub">Score multi-componente, alertas em tempo real e copy trading paper mode. Saiba quando os grandes movem — antes que o mercado reaja.</p>
-  <div class="hero-btns">
-    <a href="/login/" class="btn-lg btn-fill">Comecar Agora</a>
-    <a href="#como" class="btn-lg btn-outline">Como Funciona</a>
+<div style="overflow:hidden;white-space:nowrap;border-bottom:1px solid rgba(45,212,191,.15);background:#020605;padding:10px 0;font-family:IBM Plex Mono,monospace">
+  <div style="display:inline-flex;gap:36px;animation:tickerScroll 22s linear infinite;padding-left:36px">
+    <span style="color:rgba(232,255,251,.45);font-size:.76rem">0x7a3f...e2 :: <span style="color:#ffd23f">HYPE</span> :: <b style="color:#39ff88">LONG +12.4%</b></span>
+    <span style="color:rgba(232,255,251,.45);font-size:.76rem">0x9c1b...44 :: <span style="color:#ffd23f">BTC</span> :: <b style="color:#ff5c7a">SHORT -2.1%</b></span>
+    <span style="color:rgba(232,255,251,.45);font-size:.76rem">0x4d8e...09 :: <span style="color:#ffd23f">SOL</span> :: <b style="color:#39ff88">LONG +8.7%</b></span>
+    <span style="color:rgba(232,255,251,.45);font-size:.76rem">0x8ff3...63 :: <span style="color:#ffd23f">HYPE</span> :: <b style="color:#39ff88">SHORT +5.2%</b></span>
+    <span style="color:rgba(232,255,251,.45);font-size:.76rem">0x68e0...01 :: <span style="color:#ffd23f">ETH</span> :: <b style="color:#39ff88">LONG +19.0%</b></span>
+    <span style="color:rgba(232,255,251,.45);font-size:.76rem">0xa381...6c :: <span style="color:#ffd23f">CL</span> :: <b style="color:#ff5c7a">SHORT -1.4%</b></span>
+    <span style="color:rgba(232,255,251,.45);font-size:.76rem">0x7a3f...e2 :: <span style="color:#ffd23f">HYPE</span> :: <b style="color:#39ff88">LONG +12.4%</b></span>
+    <span style="color:rgba(232,255,251,.45);font-size:.76rem">0x9c1b...44 :: <span style="color:#ffd23f">BTC</span> :: <b style="color:#ff5c7a">SHORT -2.1%</b></span>
+    <span style="color:rgba(232,255,251,.45);font-size:.76rem">0x4d8e...09 :: <span style="color:#ffd23f">SOL</span> :: <b style="color:#39ff88">LONG +8.7%</b></span>
+    <span style="color:rgba(232,255,251,.45);font-size:.76rem">0x8ff3...63 :: <span style="color:#ffd23f">HYPE</span> :: <b style="color:#39ff88">SHORT +5.2%</b></span>
   </div>
-</section>
-
-<div class="stats">
-  <div><div class="stat-num">500+</div><div class="stat-label">Whales monitorados</div></div>
-  <div><div class="stat-num">24/7</div><div class="stat-label">Monitoramento</div></div>
-  <div><div class="stat-num">9</div><div class="stat-label">Scores</div></div>
-  <div><div class="stat-num">&lt;30s</div><div class="stat-label">Latencia</div></div>
 </div>
-
-<section class="section" id="features">
-  <div class="section-title">
-    <h2>Por que KageTrade?</h2>
-    <p>Ferramentas profissionais para voce acompanhar os maiores traders da HyperLiquid.</p>
+<section style="position:relative;min-height:680px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:70px 40px 50px;overflow:hidden">
+  <div style="position:absolute;top:50%;left:50%;width:900px;height:900px;transform:translate(-50%,-50%);border-radius:50%;overflow:hidden;opacity:.5;pointer-events:none">
+    <div style="position:absolute;inset:0;background:conic-gradient(from 0deg,rgba(45,212,191,.16),transparent 25%);animation:radarSweep 6s linear infinite"></div>
   </div>
-  <div class="features">
-    <div class="feat">
-      <div class="feat-icon"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M8 12l2 2 4-4"/></svg></div>
-      <h3>Monitoramento de Whales</h3>
-      <p>Acompanhe em tempo real as carteiras dos maiores traders. Veja posicoes, entradas e saidas antes do mercado.</p>
+  <div style="position:absolute;top:50%;left:50%;width:640px;height:640px;transform:translate(-50%,-50%);border-radius:50%;border:1px solid rgba(45,212,191,.12);pointer-events:none"></div>
+  <div style="position:absolute;top:50%;left:50%;width:420px;height:420px;transform:translate(-50%,-50%);border-radius:50%;border:1px solid rgba(45,212,191,.1);pointer-events:none"></div>
+  <div style="position:absolute;top:50%;left:50%;width:200px;height:200px;transform:translate(-50%,-50%);border-radius:50%;border:1px solid rgba(45,212,191,.08);pointer-events:none"></div>
+  <span style="position:absolute;top:32%;left:62%;width:9px;height:9px;border-radius:50%;background:#2dd4bf;box-shadow:0 0 12px #2dd4bf;animation:blipDot 2s ease-in-out infinite"></span>
+  <span style="position:absolute;top:32%;left:62%;width:9px;height:9px;border-radius:50%;border:1px solid #2dd4bf;animation:blipPing 2.6s ease-out infinite"></span>
+  <span style="position:absolute;top:60%;left:30%;width:7px;height:7px;border-radius:50%;background:#2dd4bf;box-shadow:0 0 10px #2dd4bf;animation:blipDot 2.4s ease-in-out infinite .6s"></span>
+  <span style="position:absolute;top:60%;left:30%;width:7px;height:7px;border-radius:50%;border:1px solid #2dd4bf;animation:blipPing 3s ease-out infinite .6s"></span>
+  <span style="position:absolute;top:70%;left:68%;width:6px;height:6px;border-radius:50%;background:#2dd4bf;box-shadow:0 0 8px #2dd4bf;animation:blipDot 2.2s ease-in-out infinite 1.2s"></span>
+
+  <div style="position:relative;display:inline-flex;align-items:center;gap:8px;margin-bottom:28px;font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:#2dd4bf;border:1px solid rgba(45,212,191,.3);padding:.45rem 1rem;border-radius:100px;background:rgba(45,212,191,.06);font-family:IBM Plex Mono,monospace">
+    <span style="width:6px;height:6px;border-radius:50%;background:#2dd4bf;box-shadow:0 0 8px #2dd4bf;animation:blink 2.5s infinite;display:inline-block"></span>
+    SONAR ATIVO — RASTREANDO BALEIAS
+  </div>
+
+  <h1 style="position:relative;font-size:clamp(2.4rem,5vw,4.2rem);font-weight:900;line-height:1.05;letter-spacing:-.04em;max-width:820px;margin:0 auto 26px;text-transform:uppercase">Acompanhe o <span style="background:linear-gradient(135deg,#2dd4bf,#39ff88);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Smart Money</span> antes de todo mundo</h1>
+  <p style="position:relative;font-size:1.1rem;color:rgba(232,255,251,.55);max-width:520px;margin:0 auto 20px;line-height:1.6">Score multi-componente, alertas em tempo real e copy trading paper mode. Saiba quando os grandes movem — antes que o mercado reaja.</p>
+
+  <div style="position:relative;display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:48px">
+    <a href="/login/" style="display:inline-flex;align-items:center;gap:.5rem;padding:.85rem 2.2rem;border-radius:6px;font-size:.85rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;background:#2dd4bf;color:#00201c">Comecar Agora</a>
+    <a href="#como" style="display:inline-flex;align-items:center;gap:.5rem;padding:.85rem 2.2rem;border-radius:6px;font-size:.85rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;border:1px solid rgba(232,255,251,.3);color:#e8fffb">Como Funciona</a>
+  </div>
+
+  <div style="position:relative;display:flex;align-items:flex-start;justify-content:center;max-width:620px;width:100%;margin:0 auto">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;z-index:1">
+      <div style="width:52px;height:52px;border-radius:50%;background:radial-gradient(circle at 35% 30%,rgba(45,212,191,.35),rgba(45,212,191,.08));border:1px solid rgba(45,212,191,.35);display:flex;align-items:center;justify-content:center">
+        <svg viewBox="0 0 24 24" style="width:22px;height:22px"><path d="M7 6c-2.5 1.5-2.5 5 0 6.5-2.5 1.5-2.5 5 0 6.5" fill="none" stroke="#2dd4bf" stroke-width="2" stroke-linecap="round"/><path d="M17 6c2.5 1.5 2.5 5 0 6.5 2.5 1.5 2.5 5 0 6.5" fill="none" stroke="#2dd4bf" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>
+      <span style="font-size:.66rem;color:rgba(232,255,251,.4);text-transform:uppercase;letter-spacing:1px">Hyperliquid API</span>
     </div>
-    <div class="feat">
-      <div class="feat-icon"><svg viewBox="0 0 24 24"><rect x="3" y="12" width="4" height="8" rx="1"/><rect x="10" y="8" width="4" height="12" rx="1"/><rect x="17" y="4" width="4" height="16" rx="1"/></svg></div>
-      <h3>Score Multi-componente</h3>
-      <p>9 indicadores combinados: Win Rate, PnL, Drawdown, Consistencia, Diversificacao e mais. Score de 0 a 100.</p>
+    <div style="position:relative;flex:1;height:1px;background:rgba(45,212,191,.18);margin-top:26px">
+      <span style="position:absolute;top:50%;transform:translateY(-50%);width:7px;height:7px;border-radius:50%;background:#ffd23f;box-shadow:0 0 8px #ffd23f;animation:pulseLine1 2s linear infinite"></span>
+      <span style="position:absolute;top:50%;transform:translateY(-50%);width:7px;height:7px;border-radius:50%;background:#ffd23f;box-shadow:0 0 8px #ffd23f;animation:pulseLine2 2s linear infinite 1s"></span>
     </div>
-    <div class="feat">
-      <div class="feat-icon"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
-      <h3>Alertas em Tempo Real</h3>
-      <p>Receba notificacoes quando seus alvos abrirem ou fecharem posicoes. Telegram, email ou push.</p>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;z-index:1">
+      <div style="width:52px;height:52px;border-radius:10px;background:rgba(45,212,191,.1);border:1px solid rgba(45,212,191,.3);display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:700;color:#2dd4bf;font-family:IBM Plex Mono,monospace">MOTOR</div>
+      <span style="font-size:.66rem;color:rgba(232,255,251,.4);text-transform:uppercase;letter-spacing:1px">Score em tempo real</span>
     </div>
-    <div class="feat">
-      <div class="feat-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
-      <h3>Copy Trading Paper Mode</h3>
-      <p>Teste estrategias de copy trading com dinheiro virtual antes de colocar capital real em risco.</p>
+    <div style="position:relative;flex:1;height:1px;background:rgba(45,212,191,.18);margin-top:26px">
+      <span style="position:absolute;top:50%;transform:translateY(-50%);width:7px;height:7px;border-radius:50%;background:#ffd23f;box-shadow:0 0 8px #ffd23f;animation:pulseLine1 2s linear infinite .5s"></span>
+      <span style="position:absolute;top:50%;transform:translateY(-50%);width:7px;height:7px;border-radius:50%;background:#ffd23f;box-shadow:0 0 8px #ffd23f;animation:pulseLine2 2s linear infinite 1.5s"></span>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;z-index:1">
+      <div style="width:52px;height:52px;border-radius:10px;background:rgba(45,212,191,.1);border:1px solid rgba(45,212,191,.3);display:flex;align-items:center;justify-content:center">
+        <svg viewBox="0 0 24 24" style="width:22px;height:22px"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" fill="none" stroke="#2dd4bf" stroke-width="2" stroke-linecap="round"/><path d="M13.73 21a2 2 0 0 1-3.46 0" fill="none" stroke="#2dd4bf" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>
+      <span style="font-size:.66rem;color:rgba(232,255,251,.4);text-transform:uppercase;letter-spacing:1px">Seu alerta</span>
     </div>
   </div>
 </section>
-
-<section class="section" id="como">
-  <div class="section-title">
-    <h2>Como Funciona</h2>
-    <p>Tres passos para comecar a acompanhar o smart money.</p>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:rgba(45,212,191,.15);border-top:1px solid rgba(45,212,191,.15);border-bottom:1px solid rgba(45,212,191,.15);font-family:IBM Plex Mono,monospace">
+  <div style="padding:36px 16px;background:#040a09;text-align:center"><div style="font-size:2rem;font-weight:700">680+</div><div style="font-size:.7rem;color:rgba(232,255,251,.45);text-transform:uppercase;letter-spacing:1.4px;margin-top:6px">Whales monitorados</div></div>
+  <div style="padding:36px 16px;background:#040a09;text-align:center"><div style="font-size:2rem;font-weight:700">24/7</div><div style="font-size:.7rem;color:rgba(232,255,251,.45);text-transform:uppercase;letter-spacing:1.4px;margin-top:6px">Monitoramento</div></div>
+  <div style="padding:36px 16px;background:#040a09;text-align:center"><div style="font-size:2rem;font-weight:700">9</div><div style="font-size:.7rem;color:rgba(232,255,251,.45);text-transform:uppercase;letter-spacing:1.4px;margin-top:6px">Scores</div></div>
+  <div style="padding:36px 16px;background:#040a09;text-align:center"><div style="font-size:1.5rem;font-weight:700;color:#39ff88;text-shadow:0 0 16px rgba(57,255,136,.5)">Alta Performance</div><div style="font-size:.7rem;color:rgba(232,255,251,.45);text-transform:uppercase;letter-spacing:1.4px;margin-top:6px">Performance simulada (paper)</div></div>
+</div>
+<section id="features" style="padding:70px 40px;max-width:1200px;margin:0 auto">
+  <div style="text-align:center;margin-bottom:48px">
+    <h2 style="font-size:2.2rem;font-weight:800;text-transform:uppercase;letter-spacing:-.02em;margin-bottom:.6rem">Por que KageTrade?</h2>
+    <p style="color:rgba(232,255,251,.5);font-size:1rem;max-width:480px;margin:0 auto">Ferramentas profissionais para voce acompanhar os maiores traders da HyperLiquid.</p>
   </div>
-  <div class="steps-grid">
-    <div class="step"><div class="step-num">01</div><h3>Crie sua conta</h3><p>Cadastre-se em segundos e configure seu plano.</p></div>
-    <div class="step"><div class="step-num">02</div><h3>Monte sua Watchlist</h3><p>Adicione os enderecos dos whales que quer monitorar.</p></div>
-    <div class="step"><div class="step-num">03</div><h3>Receba os Alertas</h3><p>Quando seus alvos se movimentarem, voce fica sabendo na hora.</p></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1px;background:rgba(45,212,191,.15);border:1px solid rgba(45,212,191,.15);border-radius:12px;overflow:hidden">
+    <div style="padding:2.5rem 2rem;background:#040a09">
+      <div style="position:relative;width:40px;height:40px;border-radius:8px;margin:0 auto 24px;background:rgba(45,212,191,.12);overflow:hidden">
+        <div style="position:absolute;inset:0;background:conic-gradient(from 0deg,rgba(45,212,191,.65),transparent 40deg);animation:radarSweep 2.4s linear infinite"></div>
+      </div>
+      <h3 style="font-size:.95rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:.6rem;text-align:center">Monitoramento de Whales</h3>
+      <p style="font-size:.88rem;color:rgba(232,255,251,.5);line-height:1.6;text-align:center">Baleias com skin in the game: usam dinheiro proprio, sem viés de comissao. Nosso Score traz as carteiras mais assertivas e rentaveis.</p>
+    </div>
+    <div style="padding:2.5rem 2rem;background:#040a09">
+      <div style="width:40px;height:40px;border-radius:8px;margin:0 auto 24px;background:rgba(45,212,191,.12);display:flex;align-items:end;justify-content:center;gap:3px;padding:8px">
+        <span style="width:4px;height:100%;background:#2dd4bf;border-radius:2px;transform-origin:bottom;animation:barPulse 1.2s ease-in-out infinite"></span>
+        <span style="width:4px;height:100%;background:#2dd4bf;border-radius:2px;transform-origin:bottom;animation:barPulse 1.2s ease-in-out infinite .2s"></span>
+        <span style="width:4px;height:100%;background:#2dd4bf;border-radius:2px;transform-origin:bottom;animation:barPulse 1.2s ease-in-out infinite .4s"></span>
+      </div>
+      <h3 style="font-size:.95rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:.6rem;text-align:center">Score Multi-componente</h3>
+      <p style="font-size:.88rem;color:rgba(232,255,251,.5);line-height:1.6;text-align:center">9 indicadores combinados: Win Rate, PnL, Drawdown, Consistencia, Diversificacao e mais. Score de 0 a 100.</p>
+    </div>
+    <div style="padding:2.5rem 2rem;background:#040a09">
+      <div style="position:relative;width:40px;height:40px;border-radius:8px;margin:0 auto 24px;background:rgba(45,212,191,.12);display:flex;align-items:center;justify-content:center">
+        <span style="position:absolute;width:20px;height:20px;border-radius:50%;border:1px solid #2dd4bf;animation:ringPing 1.8s ease-out infinite"></span>
+        <svg viewBox="0 0 24 24" style="width:16px;height:16px;position:relative"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" fill="none" stroke="#2dd4bf" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>
+      <h3 style="font-size:.95rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:.6rem;text-align:center">Alertas em Tempo Real</h3>
+      <p style="font-size:.88rem;color:rgba(232,255,251,.5);line-height:1.6;text-align:center">Receba notificacoes quando seus alvos abrirem ou fecharem posicoes. Telegram, email ou push.</p>
+    </div>
+    <div style="padding:2.5rem 2rem;background:#040a09">
+      <div style="width:40px;height:40px;border-radius:8px;margin:0 auto 24px;background:rgba(57,255,136,.1);display:flex;align-items:center;justify-content:center">
+        <svg viewBox="0 0 60 30" style="width:26px;height:16px"><polyline points="0,26 10,20 20,22 30,12 40,15 50,4 60,2" fill="none" stroke="#39ff88" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="220" style="animation:drawLine 2.4s ease-in-out infinite"/></svg>
+      </div>
+      <h3 style="font-size:.95rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:.6rem;text-align:center">Copy Trading Paper Mode</h3>
+      <p style="font-size:.88rem;color:rgba(232,255,251,.5);line-height:1.6;text-align:center">Teste estrategias de copy trading com dinheiro virtual antes de colocar capital real em risco.</p>
+    </div>
+  </div>
+</section>
+<section id="como" style="padding:70px 40px;max-width:1200px;margin:0 auto">
+  <div style="text-align:center;margin-bottom:48px">
+    <h2 style="font-size:2.2rem;font-weight:800;text-transform:uppercase;letter-spacing:-.02em;margin-bottom:.6rem">Como Funciona</h2>
+    <p style="color:rgba(232,255,251,.5);font-size:1rem;max-width:480px;margin:0 auto">Tres passos para comecar a acompanhar o smart money.</p>
+  </div>
+  <div style="position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:2rem">
+    <div style="position:absolute;top:38px;left:12%;right:12%;height:1px;background:rgba(45,212,191,.15);z-index:0">
+      <span style="position:absolute;top:-3px;width:7px;height:7px;border-radius:50%;background:#2dd4bf;box-shadow:0 0 8px #2dd4bf;animation:pulseLine1 2.6s linear infinite"></span>
+    </div>
+    <div style="text-align:center;padding:2rem 1.5rem;position:relative;z-index:1"><div style="font-size:3rem;font-weight:900;color:#2dd4bf;opacity:.3;margin-bottom:1rem">01</div><h3 style="font-size:.9rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:.5rem">Crie sua conta</h3><p style="font-size:.85rem;color:rgba(232,255,251,.5);line-height:1.5">Cadastre-se em segundos e configure seu plano.</p></div>
+    <div style="text-align:center;padding:2rem 1.5rem;position:relative;z-index:1"><div style="font-size:3rem;font-weight:900;color:#2dd4bf;opacity:.3;margin-bottom:1rem">02</div><h3 style="font-size:.9rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:.5rem">Monte sua Watchlist</h3><p style="font-size:.85rem;color:rgba(232,255,251,.5);line-height:1.5">Adicione os enderecos dos whales que quer monitorar.</p></div>
+    <div style="text-align:center;padding:2rem 1.5rem;position:relative;z-index:1"><div style="font-size:3rem;font-weight:900;color:#2dd4bf;opacity:.3;margin-bottom:1rem">03</div><h3 style="font-size:.9rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:.5rem">Receba os Alertas</h3><p style="font-size:.85rem;color:rgba(232,255,251,.5);line-height:1.5">Quando seus alvos se movimentarem, voce fica sabendo na hora.</p></div>
   </div>
 </section>
 
-<section class="section" id="precos">
-  <div class="section-title">
-    <h2>Planos</h2>
-    <p>Comece gratis. Evolua quando estiver pronto.</p>
+<section id="precos" style="padding:70px 40px;max-width:1200px;margin:0 auto">
+  <div style="text-align:center;margin-bottom:48px">
+    <h2 style="font-size:2.2rem;font-weight:800;text-transform:uppercase;letter-spacing:-.02em;margin-bottom:.6rem">Planos</h2>
+    <p style="color:rgba(232,255,251,.5);font-size:1rem;max-width:480px;margin:0 auto">Comece gratis. Evolua quando estiver pronto.</p>
   </div>
-  <div class="plans">
-    <div class="plan">
-      <h3>Starter</h3>
-      <div class="plan-price">R$ 49<small>/mes</small></div>
-      <div class="plan-note">Ideal para comecar</div>
-      <ul class="plan-list">
-        <li>Ate 10 whales na watchlist</li>
-        <li>Score completo de 9 componentes</li>
-        <li>Alertas via Telegram</li>
-        <li>Copy trading paper mode</li>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1px;background:rgba(45,212,191,.15);border:1px solid rgba(45,212,191,.15);border-radius:12px;overflow:hidden;max-width:700px;margin:0 auto">
+    <div style="padding:3rem 2.5rem;background:#040a09">
+      <h3 style="font-size:1rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem">Starter</h3>
+      <div style="font-size:2.5rem;font-weight:900;letter-spacing:-.03em;margin:.8rem 0 .2rem">R$ 49<span style="font-size:.85rem;font-weight:400;color:rgba(232,255,251,.5)">/mes</span></div>
+      <div style="font-size:.8rem;color:rgba(232,255,251,.3);margin-bottom:1.5rem">Ideal para comecar</div>
+      <ul style="list-style:none;margin-bottom:2rem">
+        <li style="padding:.45rem 0;font-size:.85rem;color:rgba(232,255,251,.7);display:flex;align-items:center;gap:.6rem"><span style="width:4px;height:4px;border-radius:50%;background:#2dd4bf;flex-shrink:0"></span>Ate 10 whales na watchlist</li>
+        <li style="padding:.45rem 0;font-size:.85rem;color:rgba(232,255,251,.7);display:flex;align-items:center;gap:.6rem"><span style="width:4px;height:4px;border-radius:50%;background:#2dd4bf;flex-shrink:0"></span>Score completo de 9 componentes</li>
+        <li style="padding:.45rem 0;font-size:.85rem;color:rgba(232,255,251,.7);display:flex;align-items:center;gap:.6rem"><span style="width:4px;height:4px;border-radius:50%;background:#2dd4bf;flex-shrink:0"></span>Alertas via Telegram</li>
+        <li style="padding:.45rem 0;font-size:.85rem;color:rgba(232,255,251,.7);display:flex;align-items:center;gap:.6rem"><span style="width:4px;height:4px;border-radius:50%;background:#2dd4bf;flex-shrink:0"></span>Copy trading paper mode</li>
       </ul>
-      <a href="/login/" class="btn-plan btn-plan-outline">Comecar</a>
+      <a href="/login/" style="display:block;width:100%;padding:.75rem;border-radius:6px;font-size:.82rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;text-align:center;border:1px solid rgba(232,255,251,.3);color:#e8fffb;transition:all .2s">Comecar</a>
     </div>
-    <div class="plan hot">
-      <div class="plan-badge">Popular</div>
-      <h3>Pro</h3>
-      <div class="plan-price">R$ 149<small>/mes</small></div>
-      <div class="plan-note">Para traders serios</div>
-      <ul class="plan-list">
-        <li>Whales ilimitados</li>
-        <li>Score deleveraged</li>
-        <li>Alertas multi-canal</li>
-        <li>Copy trading live mode</li>
-        <li>API access</li>
+    <div style="padding:3rem 2.5rem;background:rgba(45,212,191,.04);position:relative">
+      <div style="position:absolute;top:1.5rem;right:1.5rem;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;padding:.3rem .8rem;border-radius:100px;background:#2dd4bf;color:#00201c">Popular</div>
+      <h3 style="font-size:1rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem">Pro</h3>
+      <div style="font-size:2.5rem;font-weight:900;letter-spacing:-.03em;margin:.8rem 0 .2rem">R$ 149<span style="font-size:.85rem;font-weight:400;color:rgba(232,255,251,.5)">/mes</span></div>
+      <div style="font-size:.8rem;color:rgba(232,255,251,.3);margin-bottom:1.5rem">Para traders serios</div>
+      <ul style="list-style:none;margin-bottom:2rem">
+        <li style="padding:.45rem 0;font-size:.85rem;color:rgba(232,255,251,.7);display:flex;align-items:center;gap:.6rem"><span style="width:4px;height:4px;border-radius:50%;background:#2dd4bf;flex-shrink:0"></span>Whales ilimitados</li>
+        <li style="padding:.45rem 0;font-size:.85rem;color:rgba(232,255,251,.7);display:flex;align-items:center;gap:.6rem"><span style="width:4px;height:4px;border-radius:50%;background:#2dd4bf;flex-shrink:0"></span>Score deleveraged</li>
+        <li style="padding:.45rem 0;font-size:.85rem;color:rgba(232,255,251,.7);display:flex;align-items:center;gap:.6rem"><span style="width:4px;height:4px;border-radius:50%;background:#2dd4bf;flex-shrink:0"></span>Alertas multi-canal</li>
+        <li style="padding:.45rem 0;font-size:.85rem;color:rgba(232,255,251,.7);display:flex;align-items:center;gap:.6rem"><span style="width:4px;height:4px;border-radius:50%;background:#2dd4bf;flex-shrink:0"></span>Copy trading live mode</li>
+        <li style="padding:.45rem 0;font-size:.85rem;color:rgba(232,255,251,.7);display:flex;align-items:center;gap:.6rem"><span style="width:4px;height:4px;border-radius:50%;background:#2dd4bf;flex-shrink:0"></span>API access</li>
       </ul>
-      <a href="/login/" class="btn-plan btn-plan-fill">Comecar</a>
+      <a href="/login/" style="display:block;width:100%;padding:.75rem;border-radius:6px;font-size:.82rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;text-align:center;background:#2dd4bf;color:#00201c;transition:all .2s">Comecar</a>
     </div>
   </div>
 </section>
 
-<section class="cta">
-  <h2>Pronto para ver o que o<br>smart money esta fazendo?</h2>
-  <p>Sem cartao de credito. Cancele quando quiser.</p>
-  <a href="/login/" class="btn-lg btn-fill">Criar Minha Conta</a>
+<section style="text-align:center;padding:100px 40px;position:relative">
+  <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(45,212,191,.08),transparent 70%);pointer-events:none"></div>
+  <h2 style="font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:900;text-transform:uppercase;letter-spacing:-.03em;margin-bottom:1rem;position:relative">Pronto para ver o que o<br>smart money esta fazendo?</h2>
+  <p style="color:rgba(232,255,251,.5);margin-bottom:2.5rem;font-size:1rem;position:relative">Sem cartao de credito. Cancele quando quiser.</p>
+  <a href="/login/" style="position:relative;display:inline-flex;align-items:center;gap:.5rem;padding:.85rem 2.2rem;border-radius:6px;font-size:.85rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;background:#2dd4bf;color:#00201c">Criar Minha Conta</a>
 </section>
 
-<footer>KAGETRADE &copy; 2026 &mdash; Dados da HyperLiquid API publica.</footer>
-
+<footer style="padding:2rem;text-align:center;border-top:1px solid rgba(45,212,191,.15);font-size:.75rem;color:rgba(232,255,251,.3);letter-spacing:.5px;font-family:IBM Plex Mono,monospace">KAGETRADE &copy; 2026 — Dados da HyperLiquid API publica.</footer>
+</div>
 </body>
 </html>
