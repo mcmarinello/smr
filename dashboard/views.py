@@ -320,3 +320,69 @@ def settings_page(request):
         "target_wallet_pairs": target_wallet_pairs,
     }
     return render(request, "dashboard/settings.html", context)
+
+@login_required
+def whale_copy_status(request):
+    """
+    Whale Copy status page (PRD §19) — shows live execution status,
+    open positions, recent signals, and risk metrics.
+    """
+    from django.conf import settings as smr_settings
+    from copytrading.models import SimulatedTrade
+
+    live_enabled = smr_settings.HL_LIVE_EXECUTION
+
+    # Get recent simulated trades (last 24h)
+    from datetime import timedelta
+    from django.utils import timezone
+    now = timezone.now()
+    day_ago = now - timedelta(hours=24)
+
+    recent_trades = SimulatedTrade.objects.filter(
+        opened_at__gte=day_ago
+    ).select_related("profile", "wallet").order_by("-opened_at")[:20]
+
+    # Summary stats
+    total_trades = SimulatedTrade.objects.count()
+    open_trades = SimulatedTrade.objects.filter(status="open").count()
+    closed_trades = SimulatedTrade.objects.filter(status__in=["closed", "liquidated"]).count()
+
+    context = {
+        "live_enabled": live_enabled,
+        "recent_trades": recent_trades,
+        "total_trades": total_trades,
+        "open_trades": open_trades,
+        "closed_trades": closed_trades,
+        "risk_config": {
+            "capital_per_trade": smr_settings.HL_CAPITAL_PER_TRADE_USD,
+            "max_leverage": smr_settings.HL_MAX_LEVERAGE,
+            "max_exposure_pct": smr_settings.HL_MAX_EXPOSURE_PCT,
+            "max_open_positions": smr_settings.HL_MAX_OPEN_POSITIONS,
+            "stop_loss_pct": smr_settings.HL_STOP_LOSS_PCT,
+            "take_profit_pct": smr_settings.HL_TAKE_PROFIT_PCT,
+        },
+    }
+    return render(request, "dashboard/whale_copy_status.html", context)
+
+
+@login_required
+def whale_copy_api_status(request):
+    """
+    JSON API endpoint for whale copy status — used by the dashboard
+    real-time updates.
+    """
+    from django.conf import settings as smr_settings
+    from django.http import JsonResponse
+    from copytrading.models import SimulatedTrade
+
+    live_enabled = smr_settings.HL_LIVE_EXECUTION
+
+    total_trades = SimulatedTrade.objects.count()
+    open_trades = SimulatedTrade.objects.filter(status="open").count()
+
+    return JsonResponse({
+        "live_enabled": live_enabled,
+        "total_trades": total_trades,
+        "open_trades": open_trades,
+        "mode": "live" if live_enabled else "dry_run",
+    })

@@ -217,6 +217,31 @@ ALERT_DEDUP_COOLDOWN_SECONDS = config(
 TMT_BRIDGE_ENABLED = config("TMT_BRIDGE_ENABLED", default=False, cast=bool)
 TMT_BRIDGE_TOKEN = config("TMT_BRIDGE_TOKEN", default="")
 
+# Whale Copy — Live Execution (born disabled)
+# PRD §19: live execution is gated by explicit flag. When False (default),
+# all copy trading runs in dry-run/paper mode. Only set to True when:
+# 1. Paper results are satisfactory
+# 2. HL_PRIVATE_KEY is configured
+# 3. Admin explicitly enables it
+HL_LIVE_EXECUTION = config("HL_LIVE_EXECUTION", default=False, cast=bool)
+HL_PRIVATE_KEY = config("HL_PRIVATE_KEY", default="")
+
+# Whale Copy — Risk Parameters
+HL_CAPITAL_PER_TRADE_USD = config("HL_CAPITAL_PER_TRADE_USD", default=50.0, cast=float)
+HL_MAX_LEVERAGE = config("HL_MAX_LEVERAGE", default=5, cast=int)
+HL_MAX_EXPOSURE_PCT = config("HL_MAX_EXPOSURE_PCT", default=25.0, cast=float)
+HL_MAX_OPEN_POSITIONS = config("HL_MAX_OPEN_POSITIONS", default=5, cast=int)
+HL_STOP_LOSS_PCT = config("HL_STOP_LOSS_PCT", default=5.0, cast=float)
+HL_TAKE_PROFIT_PCT = config("HL_TAKE_PROFIT_PCT", default=15.0, cast=float)
+HL_MIN_SCORE_TO_COPY = config("HL_MIN_SCORE_TO_COPY", default=55, cast=int)
+HL_SLIPPAGE_TOLERANCE = config("HL_SLIPPAGE_TOLERANCE", default=0.005, cast=float)
+
+# Whale Copy — Monitor Settings
+HL_POLL_INTERVAL_SEC = config("HL_POLL_INTERVAL_SEC", default=10, cast=int)
+HL_WS_RECONNECT_SEC = config("HL_WS_RECONNECT_SEC", default=5, cast=int)
+HL_EXECUTION_DELAY_SEC = config("HL_EXECUTION_DELAY_SEC", default=0.5, cast=float)
+HL_COPY_MODE = config("HL_COPY_MODE", default="open_close")
+
 # Logging
 
 LOGGING = {

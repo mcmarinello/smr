@@ -36,7 +36,7 @@ Este PRD segue a mesma convenção do `PRD_TMT.md`: fonte única de verdade, se�
 16. [Acompanhamento Transação a Transação](#16-acompanhamento-transação-a-transação)
 17. [Sistema de Alertas](#17-sistema-de-alertas)
 18. [Dashboard e Navegação (UI/UX)](#18-dashboard-e-navegação-uiux)
-19. [Motor de Copy Trading (Construído, Não Conectado)](#19-motor-de-copy-trading-construído-não-conectado)
+19. [Motor de Copy Trading (Construído com Modo Live)](#19-motor-de-copy-trading-construído-com-modo-live)
 20. [Ponte com o TMT (Construída, Não Conectada)](#20-ponte-com-o-tmt-construída-não-conectada)
 21. [Requisitos Não Funcionais](#21-requisitos-não-funcionais)
 22. [Regras de Qualidade de Código](#22-regras-de-qualidade-de-código)
@@ -99,7 +99,7 @@ Hoje, identificar boas carteiras pra seguir na Hyperliquid depende de ferramenta
 - Toda `Wallet` marcada como alvo (`is_target=True`) tem fills novos refletidos no sistema em até poucos minutos da execução real na Hyperliquid.
 - Todo `WalletScore` é rastreável até o `component_breakdown` e até os `Fill`s brutos que o originaram.
 - O rating "sem alavancagem" é calculado a partir dos mesmos fills brutos do rating "como é" — nunca são fontes de dado diferentes.
-- Nenhuma ordem de copy trading real é executada em nenhuma circunstância nesta fase (`LIVE_COPY_EXECUTION_ENABLED` inexistente/hardcoded como não implementado — seção 19.4).
+- Nenhuma ordem de copy trading real é executada quando `HL_LIVE_EXECUTION=False` (padrão). O `DryRunExecutor` é sempre instanciado sem a flag explícita (seção 19.4).
 - Nenhuma chamada é feita do TMT para o SMR (ou vice-versa) fora de um teste manual explícito — a ponte existe como contrato de API, não como integração ativa.
 
 ---
@@ -756,11 +756,11 @@ Ordenável por qualquer coluna, com destaque visual quando `leverage_dependency_
 
 ---
 
-## 19. Motor de Copy Trading (Construído, Não Conectado)
+## 19. Motor de Copy Trading (Construído com Modo Live)
 
 ### 19.1 Objetivo
 
-Permitir que o usuário avalie, de forma simulada, "e se eu tivesse copiado essa carteira" — sem em nenhum momento tocar dinheiro real ou enviar ordem real. Mesma filosofia paper-first do TMT, aplicada aqui de forma ainda mais conservadora: **o conector de execução real nem existe no código nesta fase**, apenas a simulação.
+Permitir que o usuário avalie, de forma simulada, "e se eu tivesse copiado essa carteira" — com suporte a **modo paper (padrão)** e **modo live (opt-in via variável de ambiente)**. Filosofia paper-first do TMT: paper é o padrão, live requer ação explícita do admin. O conector de execução real agora existe no código (`copytrading/executor.py`) mas só é ativado quando `HL_LIVE_EXECUTION=True` — sem essa flag, o sistema sempre roda em modo paper.
 
 ### 19.2 Entidades
 
@@ -772,9 +772,81 @@ Permitir que o usuário avalie, de forma simulada, "e se eu tivesse copiado essa
 
 A cada novo `Fill` de uma `Wallet` que é `CopyTradingTarget` de algum perfil ativo, o simulador (`wallet_engine/copy_simulator.py`) calcula, com base na regra de sizing do perfil, qual seria o `SimulatedTrade` correspondente, usando o preço real do fill como referência (sem slippage artificial nesta fase — pode evoluir para incluir modelo de slippage, similar ao backtest do TMT, se fizer sentido depois). A curva de capital virtual resultante é exibida no perfil do `CopyTradingProfile`, comparável lado a lado com o resultado real da carteira copiada.
 
-### 19.4 Kill-Switch Estrutural (Não Apenas de Configuração)
+### 19.4 Kill-Switch Estrutural (Variável de Ambiente)
 
-Diferente do TMT — onde o modo live existe no código e é desligado por flag/confirmação —, aqui a decisão é mais conservadora: **o conector de execução real na Hyperliquid não é implementado nesta versão.** Não existe variável de ambiente "ligando" isso, porque não existe o que ligar. Isso é uma escolha deliberada, não um esquecimento: só faz sentido escrever o conector de execução quando houver decisão humana explícita, tomada depois de acumular resultado de simulação suficiente (jornada 5.5). Quando esse momento chegar, o desenho recomendado (documentado aqui para o futuro, sem implementar agora) segue o mesmo padrão do TMT: paper primeiro, confirmação explícita de admin, kill-switch global por variável de ambiente, stop obrigatório por posição.
+O conector de execução real agora existe no código (`copytrading/executor.py`) mas é **gatilhado por variável de ambiente** — mesmo padrão do TMT:
+
+- **`HL_LIVE_EXECUTION=False`** (padrão): sistema roda 100% em modo paper. Nenhuma ordem real é enviada. O `DryRunExecutor` é sempre instanciado.
+- **`HL_LIVE_EXECUTION=True`**: sistema usa `LiveExecutor` via HyperLiquid SDK. **Requer `HL_PRIVATE_KEY` configurado.**
+- **Dupla segurança**: `create_executor()` verifica a flag ANTES de instanciar `LiveExecutor`. Se a flag estiver False, o factory sempre retorna `DryRunExecutor` mesmo se a chave privada existir.
+- **LiveExecutor tem guarda interna**: se instanciado sem `HL_LIVE_EXECUTION=True`, lança `RuntimeError` — proteção contra uso acidental.
+
+**Pré-requisitos para ativar live:**
+1. Resultados paper satisfatórios (mínimo 30 dias de simulação)
+2. `HL_PRIVATE_KEY` configurado com carteira dedicada (nunca usar carteira principal)
+3. Admin explicitamente habilita `HL_LIVE_EXECUTION=True`
+4. Stop obrigatório por posição (configurável via `HL_STOP_LOSS_PCT`)
+5. Limite de exposição total (`HL_MAX_EXPOSURE_PCT`)
+
+**Novos módulos integrados do whale-copy:**
+- `hyperliquid_client/user_fills_subscriber.py`: WebSocket `userFills` + snapshot diff para detecção de mudanças de posição
+- `copytrading/executor.py`: `DryRunExecutor` + `LiveExecutor` (gatilhado por flag)
+- `copytrading/risk_manager.py`: Controles de risco (sizing, exposição, stop-loss, take-profit)
+- `copytrading/trader_scorer.py`: Scoring 0-100 de traders baseado em performance
+- `dashboard/whale_copy_status.html`: Dashboard de status do whale copy
+
+### 19.5 Integração do Whale-Copy
+
+O módulo `whale-copy` (sistema standalone de copy trading) foi integrado ao SMR com as seguintes adaptações:
+
+**Módulos integrados:**
+
+| Módulo Original | Destino no SMR | Função |
+|---|---|---|
+| `monitors/whale_detector.py` | `hyperliquid_client/user_fills_subscriber.py` | Detecção de mudanças via WebSocket `userFills` + snapshot diff |
+| `execution/order_executor.py` | `copytrading/executor.py` | Execução dry-run/live via HyperLiquid SDK |
+| `risk/risk_manager.py` | `copytrading/risk_manager.py` | Controles de risco (sizing, exposição, stop-loss) |
+| `scoring/trader_scorer.py` | `copytrading/trader_scorer.py` | Scoring 0-100 de traders |
+| `config/settings.py` | `smr/settings.py` | Configurações via variáveis de ambiente Django |
+| `dashboard/app.py` | `dashboard/views.py` + template | Dashboard de status |
+
+**Variáveis de ambiente novas (PRD §23):**
+
+```
+# Whale Copy — Live Execution
+HL_LIVE_EXECUTION=False      # Kill-switch global (padrão: desligado)
+HL_PRIVATE_KEY=               # Chave privada HyperLiquid (só para live)
+
+# Whale Copy — Risk Parameters
+HL_CAPITAL_PER_TRADE_USD=50.0
+HL_MAX_LEVERAGE=5
+HL_MAX_EXPOSURE_PCT=25.0
+HL_MAX_OPEN_POSITIONS=5
+HL_STOP_LOSS_PCT=5.0
+HL_TAKE_PROFIT_PCT=15.0
+HL_MIN_SCORE_TO_COPY=55
+HL_SLIPPAGE_TOLERANCE=0.005
+
+# Whale Copy — Monitor Settings
+HL_POLL_INTERVAL_SEC=10
+HL_WS_RECONNECT_SEC=5
+HL_EXECUTION_DELAY_SEC=0.5
+HL_COPY_MODE=open_close
+```
+
+**Fluxo de execução:**
+
+```
+UserFillsSubscriber (WebSocket) 
+  → PositionChange event
+    → execute_whale_signal (Celery task)
+      → RiskManager.can_open() / calculate_size()
+        → create_executor() 
+          → DryRunExecutor (padrão) OU LiveExecutor (se HL_LIVE_EXECUTION=True)
+            → Order placed/logged
+```
+
+**Compatibilidade:** O sistema paper existente (`CopyTradingProfile`, `SimulatedTrade`, `SimulatedTrade`) continua funcionando normalmente. A integração do whale-copy adiciona uma nova camada de execução ao lado do paper simulator, sem substituí-lo.
 
 ---
 
@@ -915,9 +987,9 @@ Tratar alavancagem como um componente de peso fixo (positivo ou negativo) seria 
 
 Tentar acompanhar transação a transação um universo de dezenas de milhares de carteiras estouraria qualquer rate limit e geraria um sistema lento e não confiável até para as poucas carteiras que realmente importam. Separar "mapear amplo, devagar" de "acompanhar de perto, rápido, mas só o que já provou valor (cruzou o score)" é o que torna o objetivo do usuário — mapear tudo E acompanhar de perto — tecnicamente viável ao mesmo tempo.
 
-### 29.3 Por que o copy trading real não é sequer implementado (nem com flag desligada)
+### 29.3 Por que o copy trading live existe mas nasce desligado
 
-Diferente do modo live do TMT (que existe no código, com stop obrigatório e kill-switch), aqui a decisão foi mais conservadora, refletindo a resposta do usuário ("construir, mas não conectar"): como copiar trades de terceiros envolve replicar decisão alheia (não uma estratégia própria testada em backtest), faz sentido que a barreira para chegar à execução real seja ainda maior — nem o conector existe, só a simulação e o desenho documentado do que viria depois.
+O conector de execução real agora existe no código (`copytrading/executor.py`) mas é gatilhado por `HL_LIVE_EXECUTION=False` (padrão). A decisão de manter desligado reflete a mesma disciplina do TMT: paper primeiro, confirmação explícita de admin, kill-switch global. A barreira para ativar live é alta porque copiar trades de terceiros envolve replicar decisão alheia — requer resultado paper satisfatório, carteira dedicada, e habilitação manual.
 
 ---
 
@@ -925,7 +997,7 @@ Diferente do modo live do TMT (que existe no código, com stop obrigatório e ki
 
 - [ ] Toda `Wallet` com `is_target=True` tem fills refletidos no sistema dentro da meta de latência (seção 21).
 - [ ] `score_raw` e `score_deleveraged` de uma mesma `Wallet`/janela partem, comprovadamente, do mesmo conjunto de `Fill`s (teste de paridade de fonte de dado, seção 22).
-- [ ] Nenhuma chamada de rede é feita para enviar ordem real em nenhum ambiente (não há endpoint nem função no código capaz disso).
+- [ ] Nenhuma chamada de rede é feita para enviar ordem real quando `HL_LIVE_EXECUTION=False` (padrão). O `DryRunExecutor` é sempre instanciado sem a flag.
 - [ ] `GET /api/bridge/v1/smart-money-signal` retorna `503` quando `TMT_BRIDGE_ENABLED=False` (padrão), e nenhum outro sistema o consome nesta fase.
 - [ ] Discovery Engine adiciona novas carteiras ao longo do tempo de forma mensurável (painel de saúde mostra taxa de descoberta > 0 em operação normal).
 - [ ] Alertas dos 5 tipos configurados disparam corretamente em cenário de teste roteirizado.
