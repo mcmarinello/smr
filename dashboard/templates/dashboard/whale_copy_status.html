@@ -1,178 +1,152 @@
 {% extends "dashboard/base.html" %}
 {% load static %}
 
-{% block title %}Whale Copy Status — SMR{% endblock %}
+{% block title %}Whale Copy — Status{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-  <div class="row mb-4">
-    <div class="col-12">
-      <h1>🐋 Whale Copy — Status</h1>
-      <p class="text-muted">
-        PRD §19 — Modo de execução: 
-        <span class="badge {% if live_enabled %}badge-danger{% else %}badge-success{% endif %}">
-          {% if live_enabled %}🔴 LIVE{% else %}🟢 DRY RUN{% endif %}
-        </span>
-      </p>
+<div class="main__header">
+  <div>
+    <h1>Whale Copy — Status</h1>
+    <div class="main__subtitle">
+      PRD §19 — Modo de execução:
+      {% if live_enabled %}
+        <span class="badge badge--critical">LIVE</span>
+      {% else %}
+        <span class="badge badge--info">PAPER</span>
+      {% endif %}
     </div>
   </div>
+</div>
 
-  <!-- KPI Cards -->
-  <div class="row mb-4">
-    <div class="col-md-3">
-      <div class="card">
-        <div class="card-body">
-          <h5 class="card-title">Total Trades</h5>
-          <h2>{{ total_trades }}</h2>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-3">
-      <div class="card">
-        <div class="card-body">
-          <h5 class="card-title">Open Positions</h5>
-          <h2>{{ open_trades }}</h2>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-3">
-      <div class="card">
-        <div class="card-body">
-          <h5 class="card-title">Closed Trades</h5>
-          <h2>{{ closed_trades }}</h2>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-3">
-      <div class="card">
-        <div class="card-body">
-          <h5 class="card-title">Execution Mode</h5>
-          <h2>{% if live_enabled %}LIVE{% else %}PAPER{% endif %}</h2>
-        </div>
-      </div>
+<!-- KPI Cards -->
+<div class="grid grid--kpi">
+  <div class="kpi">
+    <div class="kpi__label">Total Trades</div>
+    <div class="kpi__value">{{ total_trades }}</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi__label">Open Positions</div>
+    <div class="kpi__value">{{ open_trades }}</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi__label">Closed Trades</div>
+    <div class="kpi__value">{{ closed_trades }}</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi__label">Execution Mode</div>
+    <div class="kpi__value {% if live_enabled %}danger{% else %}good{% endif %}">
+      {% if live_enabled %}LIVE{% else %}PAPER{% endif %}
     </div>
   </div>
+</div>
 
-  <!-- Risk Configuration -->
-  <div class="row mb-4">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-header">
-          <h5>⚙️ Risk Configuration</h5>
-        </div>
-        <div class="card-body">
-          <div class="row">
-            <div class="col-md-3">
-              <strong>Capital per Trade:</strong> ${{ risk_config.capital_per_trade }}
-            </div>
-            <div class="col-md-3">
-              <strong>Max Leverage:</strong> {{ risk_config.max_leverage }}x
-            </div>
-            <div class="col-md-3">
-              <strong>Max Exposure:</strong> {{ risk_config.max_exposure_pct }}%
-            </div>
-            <div class="col-md-3">
-              <strong>Max Open Positions:</strong> {{ risk_config.max_open_positions }}
-            </div>
-          </div>
-          <div class="row mt-2">
-            <div class="col-md-3">
-              <strong>Stop Loss:</strong> {{ risk_config.stop_loss_pct }}%
-            </div>
-            <div class="col-md-3">
-              <strong>Take Profit:</strong> {{ risk_config.take_profit_pct }}%
-            </div>
-          </div>
-        </div>
-      </div>
+<!-- Risk Configuration -->
+<div class="card" style="margin-top:16px">
+  <div class="card__title">Risk Configuration</div>
+  <div class="grid grid--kpi">
+    <div class="kpi">
+      <div class="kpi__label">Capital per Trade</div>
+      <div class="kpi__value">${{ risk_config.capital_per_trade }}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__label">Max Leverage</div>
+      <div class="kpi__value">{{ risk_config.max_leverage }}×</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__label">Max Exposure</div>
+      <div class="kpi__value">{{ risk_config.max_exposure_pct }}%</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__label">Max Open Positions</div>
+      <div class="kpi__value">{{ risk_config.max_open_positions }}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__label">Stop Loss</div>
+      <div class="kpi__value">{{ risk_config.stop_loss_pct }}%</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__label">Take Profit</div>
+      <div class="kpi__value">{{ risk_config.take_profit_pct }}%</div>
     </div>
   </div>
+</div>
 
-  <!-- Recent Trades -->
-  <div class="row">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-header">
-          <h5>📊 Recent Trades (24h)</h5>
-        </div>
-        <div class="card-body">
-          {% if recent_trades %}
-          <table class="table table-striped">
-            <thead>
-              <tr>
-                <th>Profile</th>
-                <th>Asset</th>
-                <th>Side</th>
-                <th>Entry Price</th>
-                <th>Size (USD)</th>
-                <th>Status</th>
-                <th>Opened At</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for trade in recent_trades %}
-              <tr>
-                <td>{{ trade.profile.name }}</td>
-                <td>{{ trade.asset }}</td>
-                <td>
-                  <span class="badge {% if trade.side == 'long' %}badge-success{% else %}badge-danger{% endif %}">
-                    {{ trade.side }}
-                  </span>
-                </td>
-                <td>${{ trade.entry_price }}</td>
-                <td>${{ trade.size_usd }}</td>
-                <td>
-                  <span class="badge 
-                    {% if trade.status == 'open' %}badge-warning
-                    {% elif trade.status == 'closed' %}badge-secondary
-                    {% else %}badge-danger{% endif %}">
-                    {{ trade.status }}
-                  </span>
-                </td>
-                <td>{{ trade.opened_at|date:"d/m/Y H:i" }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-          {% else %}
-          <p class="text-muted">No trades in the last 24 hours.</p>
-          {% endif %}
-        </div>
-      </div>
-    </div>
+<!-- Recent Trades -->
+<div class="card">
+  <div class="card__title">Recent Trades (24h)</div>
+  {% if recent_trades %}
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Profile</th>
+          <th>Asset</th>
+          <th>Side</th>
+          <th>Entry Price</th>
+          <th>Size (USD)</th>
+          <th>Status</th>
+          <th>Opened At</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for trade in recent_trades %}
+        <tr>
+          <td>{{ trade.profile.name }}</td>
+          <td class="mono">{{ trade.asset }}</td>
+          <td>
+            {% if trade.side == 'long' %}
+              <span class="badge badge--yes">long</span>
+            {% else %}
+              <span class="badge badge--critical">short</span>
+            {% endif %}
+          </td>
+          <td class="num">${{ trade.entry_price }}</td>
+          <td class="num">${{ trade.size_usd }}</td>
+          <td>
+            {% if trade.status == 'open' %}
+              <span class="badge badge--warning">open</span>
+            {% elif trade.status == 'closed' %}
+              <span class="badge badge--muted">closed</span>
+            {% else %}
+              <span class="badge badge--critical">{{ trade.status }}</span>
+            {% endif %}
+          </td>
+          <td class="mono">{{ trade.opened_at|date:"d/m/Y H:i" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
-
-  {% if not live_enabled %}
-  <!-- Warning for paper mode -->
-  <div class="row mt-4">
-    <div class="col-12">
-      <div class="alert alert-info">
-        <h5>ℹ️ Paper Mode Active</h5>
-        <p>
-          The system is currently running in <strong>paper/dry-run mode</strong>.
-          No real orders are being placed. To enable live execution:
-        </p>
-        <ol>
-          <li>Set <code>HL_LIVE_EXECUTION=True</code> in your environment</li>
-          <li>Configure <code>HL_PRIVATE_KEY</code> with your HyperLiquid private key</li>
-          <li>Ensure paper results are satisfactory before going live</li>
-        </ol>
-        <p class="mb-0">
-          <strong>⚠️ WARNING:</strong> Live execution places real orders with real money.
-          Use with extreme caution.
-        </p>
-      </div>
-    </div>
-  </div>
+  {% else %}
+  <div class="empty">Nenhuma operação nas últimas 24 horas.</div>
   {% endif %}
 </div>
+
+{% if not live_enabled %}
+<!-- Paper Mode Warning -->
+<div class="card" style="border-color:var(--smr-warn);margin-top:16px">
+  <div class="card__title" style="color:var(--smr-warn)">Paper Mode Active</div>
+  <p style="color:var(--smr-text-muted);font-size:13px;margin:0 0 8px">
+    O sistema está em <strong>modo paper (dry-run)</strong>.
+    Nenhuma ordem real está sendo enviada. Para ativar a execução em live:
+  </p>
+  <ol style="color:var(--smr-text-dim);font-size:13px;margin:0;padding-left:20px">
+    <li>Defina <code class="mono">HL_LIVE_EXECUTION=True</code> no ambiente</li>
+    <li>Configure <code class="mono">HL_PRIVATE_KEY</code> com sua chave privada HyperLiquid</li>
+    <li>Garanta que os resultados paper são satisfatórios antes de ir para live</li>
+  </ol>
+  <p style="color:var(--smr-warn);font-size:12px;margin:12px 0 0">
+    ⚠ AVISO: Execução live envia ordens reais com dinheiro real. Use com extrema cautela.
+  </p>
+</div>
+{% endif %}
 
 <script>
 // Auto-refresh status every 30 seconds
 setInterval(function() {
     fetch('/dashboard/api/whale-copy/status/')
-        .then(response => response.json())
-        .then(data => {
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
             console.log('Whale Copy Status:', data);
         });
 }, 30000);

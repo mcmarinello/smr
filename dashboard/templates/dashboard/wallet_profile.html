@@ -102,18 +102,18 @@
           <td>{{ row.label }}</td>
           <td class="num">{{ row.raw|floatformat:2 }}</td>
           <td class="num">{{ row.delv|floatformat:2 }}</td>
-          <td class="num" style="color:var(--text-mute)">{{ row.weight }}</td>
+          <td class="num" style="color:var(--smr-text-faint)">{{ row.weight }}</td>
         </tr>
         {% endfor %}
-        <tr style="border-top:2px solid var(--border)">
+        <tr style="border-top:2px solid var(--smr-border)">
           <td style="font-weight:600">Total Raw</td>
           <td class="num" style="font-weight:700">{{ current_score.score_raw|floatformat:2 }}</td>
-          <td colspan="2" class="mono" style="color:var(--text-mute)">/ 100</td>
+          <td colspan="2" class="mono" style="color:var(--smr-text-faint)">/ 100</td>
         </tr>
         <tr>
           <td style="font-weight:600">Total Deleveraged</td>
           <td class="num" style="font-weight:700">{{ current_score.score_deleveraged|floatformat:2 }}</td>
-          <td colspan="2" class="mono" style="color:var(--text-mute)">/ 100 — PnL normalizado 1×</td>
+          <td colspan="2" class="mono" style="color:var(--smr-text-faint)">/ 100 — PnL normalizado 1×</td>
         </tr>
       </tbody>
     </table>

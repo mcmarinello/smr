@@ -18,13 +18,13 @@
   <div>
     {% for n in notifications %}
     <div class="notif-row">
-      <div class="unread-dot" style="background:{% if n.read %}var(--bg-elev-2){% else %}var(--accent){% endif %}"></div>
+      <div class="unread-dot" style="background:{% if n.read %}var(--smr-card-elev){% else %}var(--smr-accent){% endif %}"></div>
       <div style="flex:1;min-width:0">
         <div class="notif-title">
           <span class="badge badge--{{ n.level }}">{{ n.get_level_display }}</span>
           {{ n.title }}
         </div>
-        <div style="color:var(--text-dim);font-size:13px;margin-top:2px">{{ n.body|truncatechars:200 }}</div>
+        <div style="color:var(--smr-text-dim);font-size:13px;margin-top:2px">{{ n.body|truncatechars:200 }}</div>
         <div class="notif-meta">
           {{ n.created_at|date:"d/m/Y H:i" }} UTC · evento: {{ n.event_type }}
           {% if n.wallet %}· <a href="{% url 'wallet_profile' n.wallet.address %}">{{ n.wallet.address|truncatechars:14 }}</a>{% endif %}
