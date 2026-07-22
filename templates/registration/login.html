@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — SMR</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f1117; color: #e0e0e0; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .login-box { background: #1a1d27; padding: 40px; border-radius: 12px; width: 100%; max-width: 400px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+        h1 { text-align: center; margin-bottom: 30px; color: #4f9eff; font-size: 24px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-size: 14px; color: #9ca3af; }
+        input[type=text], input[type=password] { width: 100%; padding: 12px; border: 1px solid #374151; border-radius: 8px; background: #0f1117; color: #e0e0e0; font-size: 16px; box-sizing: border-box; }
+        input:focus { outline: none; border-color: #4f9eff; }
+        button { width: 100%; padding: 12px; background: #4f9eff; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; font-weight: 600; }
+        button:hover { background: #3b82f6; }
+        .error { color: #ef4444; font-size: 14px; margin-bottom: 16px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="login-box">
+        <h1>🚀 SMR</h1>
+        {% if form.errors %}
+        <p class="error">Usuário ou senha inválidos.</p>
+        {% endif %}
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="id_username">Usuário</label>
+                <input type="text" name="username" id="id_username" autofocus required>
+            </div>
+            <div class="form-group">
+                <label for="id_password">Senha</label>
+                <input type="password" name="password" id="id_password" required>
+            </div>
+            <button type="submit">Entrar</button>
+        </form>
+    </div>
+</body>
+</html>

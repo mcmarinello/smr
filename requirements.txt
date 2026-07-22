@@ -33,3 +33,4 @@ ruff==0.9.10
 
 # Telegram
 python-telegram-bot==21.8
+whitenoise>=6.0
