@@ -6,6 +6,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}SMR — Smart Money Radar{% endblock %}</title>
 <link rel="stylesheet" href="{% static 'dashboard/css/smr-design-system.css' %}">
+<style>
+.paywall-modal { position: fixed; inset: 0; background: rgba(15,17,23,0.85); z-index: 1000; align-items: center; justify-content: center; }
+.paywall-modal__box { background: #1a1d27; padding: 32px; border-radius: 12px; max-width: 360px; text-align: center; }
+.paywall-modal__box h2 { color: #4f9eff; margin-top: 0; font-size: 20px; }
+.paywall-modal__cta { display: block; margin-top: 20px; padding: 12px; background: #4f9eff; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; }
+.paywall-modal__close { margin-top: 12px; background: none; border: none; color: #9ca3af; cursor: pointer; font-size: 14px; }
+</style>
 </head>
 <body>
 <div class="layout">
@@ -47,5 +54,27 @@
     {% block content %}{% endblock %}
   </main>
 </div>
+<div id="paywall-modal" class="paywall-modal" style="display:none">
+  <div class="paywall-modal__box">
+    <h2>Essa informação é para assinantes</h2>
+    <p>Assine o SMR para ver os detalhes completos dessa carteira.</p>
+    <a class="paywall-modal__cta" href="{% url 'billing:subscribe_choose_plan' %}">Assinar agora</a>
+    <button type="button" id="paywall-modal-close" class="paywall-modal__close">Fechar</button>
+  </div>
+</div>
+<script>
+document.addEventListener("click", function (event) {
+  var selector = ".js-" + "paywall-trigger";
+  var trigger = event.target.closest(selector);
+  if (trigger) {
+    event.preventDefault();
+    document.getElementById("paywall-modal").style.display = "flex";
+    return;
+  }
+  if (event.target.id === "paywall-modal-close") {
+    document.getElementById("paywall-modal").style.display = "none";
+  }
+});
+</script>
 </body>
 </html>

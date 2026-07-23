@@ -109,3 +109,14 @@ class DashboardFreemiumMaskingTest(TestCase):
 
         self.assertNotContains(response, "js-paywall-trigger")
         self.assertNotContains(response, "•")
+
+
+class PaywallModalTest(TestCase):
+    def test_modal_markup_present_on_dashboard_home(self):
+        user = User.objects.create_user(username="modaluser", password="x", role=User.Role.ADMIN)
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("dashboard_home"))
+
+        self.assertContains(response, 'id="paywall-modal"')
+        self.assertContains(response, 'id="paywall-modal-close"')
