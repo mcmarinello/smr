@@ -8,6 +8,7 @@ All labels are pt-BR per CLAUDE.md.
 from __future__ import annotations
 
 from django.contrib.auth.decorators import login_required
+from billing.decorators import subscription_required
 from django.db.models import Max
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -172,7 +173,7 @@ def discovery_ranking(request):
     return render(request, "dashboard/discovery_ranking.html", context)
 
 
-@login_required
+@subscription_required
 def wallet_profile(request, address: str):
     """Deep view of a single wallet (PRD §18.3)."""
     address = address.strip().lower()
@@ -231,7 +232,7 @@ def wallet_profile(request, address: str):
     return render(request, "dashboard/wallet_profile.html", context)
 
 
-@login_required
+@subscription_required
 def watchlist(request):
     """Target wallets (is_target=True) — quick score overview."""
     wallets = (
@@ -246,7 +247,7 @@ def watchlist(request):
     return render(request, "dashboard/watchlist.html", context)
 
 
-@login_required
+@subscription_required
 def alerts_history(request):
     """Notification list with read/unread filter (PRD §18.1 Alerts)."""
     filter_read = request.GET.get("filter", "")
@@ -268,7 +269,7 @@ def alerts_history(request):
     return render(request, "dashboard/alerts_history.html", context)
 
 
-@login_required
+@subscription_required
 def settings_page(request):
     """View / edit WalletSettings thresholds (PRD §18.1 Settings).
 
@@ -321,7 +322,7 @@ def settings_page(request):
     }
     return render(request, "dashboard/settings.html", context)
 
-@login_required
+@subscription_required
 def whale_copy_status(request):
     """
     Whale Copy status page (PRD §19) — shows live execution status,
@@ -365,7 +366,7 @@ def whale_copy_status(request):
     return render(request, "dashboard/whale_copy_status.html", context)
 
 
-@login_required
+@subscription_required
 def whale_copy_api_status(request):
     """
     JSON API endpoint for whale copy status — used by the dashboard
