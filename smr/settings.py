@@ -250,6 +250,19 @@ DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="no-reply@smr.local")
 # see docs/specs/2026-07-23-multi-tenant-foundation-design.md.
 EMAIL_VERIFICATION_REQUIRED = config("EMAIL_VERIFICATION_REQUIRED", default=False, cast=bool)
 
+# TRC-20 crypto billing (USDT on Tron) —
+# docs/specs/2026-07-23-trc20-crypto-billing-design.md. Self-custody only:
+# TRC20_WALLET_ADDRESS is a public address, never a private key.
+TRC20_WALLET_ADDRESS = config("TRC20_WALLET_ADDRESS", default="")
+TRC20_USDT_CONTRACT_ADDRESS = config(
+    "TRC20_USDT_CONTRACT_ADDRESS", default="TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"
+)
+TRONGRID_API_URL = config("TRONGRID_API_URL", default="https://api.trongrid.io")
+TRONGRID_API_KEY = config("TRONGRID_API_KEY", default="")
+TRC20_MONTHLY_PRICE_USDT = config("TRC20_MONTHLY_PRICE_USDT", default=10.00, cast=float)
+TRC20_ANNUAL_PRICE_USDT = config("TRC20_ANNUAL_PRICE_USDT", default=100.00, cast=float)
+TRC20_PAYMENT_EXPIRY_MINUTES = config("TRC20_PAYMENT_EXPIRY_MINUTES", default=30, cast=int)
+
 # Whale Copy — Live Execution (born disabled)
 # PRD §19: live execution is gated by explicit flag. When False (default),
 # all copy trading runs in dry-run/paper mode. Only set to True when:
