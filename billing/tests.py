@@ -1,7 +1,10 @@
+from datetime import timedelta
+
 from django.core import mail
 from django.db import IntegrityError
 from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 
@@ -10,6 +13,7 @@ from billing.access import access_redirect
 from billing.crypto import decrypt_secret, encrypt_secret
 from billing.emails import send_verification_email
 from billing.models import CustomerProfile, ExchangeCredential, Favorite
+from billing.tasks import expire_subscriptions
 from billing.tokens import email_verification_token
 from wallets.models import Wallet
 
@@ -188,3 +192,41 @@ class SubscriptionGatingViewTest(TestCase):
         response = self.client.get("/minhas-credenciais/")
         self.assertEqual(response.status_code, 302)
         self.assertIn(reverse("login"), response.url)
+
+
+class ExpireSubscriptionsTaskTest(TestCase):
+    def test_expires_active_profiles_past_period_end(self):
+        user = User.objects.create_user(username="cliente17", password="x", role=User.Role.CUSTOMER)
+        profile = CustomerProfile.objects.create(
+            user=user,
+            status=CustomerProfile.Status.ACTIVE,
+            current_period_end=timezone.now() - timedelta(days=1),
+        )
+
+        count = expire_subscriptions()
+
+        profile.refresh_from_db()
+        self.assertEqual(count, 1)
+        self.assertEqual(profile.status, CustomerProfile.Status.EXPIRED)
+
+    def test_leaves_active_profiles_with_future_period_end_untouched(self):
+        user = User.objects.create_user(username="cliente18", password="x", role=User.Role.CUSTOMER)
+        profile = CustomerProfile.objects.create(
+            user=user,
+            status=CustomerProfile.Status.ACTIVE,
+            current_period_end=timezone.now() + timedelta(days=1),
+        )
+
+        expire_subscriptions()
+
+        profile.refresh_from_db()
+        self.assertEqual(profile.status, CustomerProfile.Status.ACTIVE)
+
+    def test_leaves_free_profiles_untouched(self):
+        user = User.objects.create_user(username="cliente19", password="x", role=User.Role.CUSTOMER)
+        profile = CustomerProfile.objects.create(user=user, status=CustomerProfile.Status.FREE)
+
+        expire_subscriptions()
+
+        profile.refresh_from_db()
+        self.assertEqual(profile.status, CustomerProfile.Status.FREE)

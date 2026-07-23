@@ -185,6 +185,11 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": 60 * 60,  # 1 hour in seconds
         "options": {"queue": "copytrading"},
     },
+    "billing-expire-subscriptions-every-1h": {
+        "task": "billing.tasks.expire_subscriptions",
+        "schedule": 60 * 60,  # 1 hour in seconds
+        "options": {"queue": "billing"},
+    },
 }
 
 # Discovery Engine tuning (override in .env)
