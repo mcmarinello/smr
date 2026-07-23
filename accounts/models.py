@@ -7,6 +7,7 @@ class User(AbstractUser):
         ADMIN = "admin", "Admin"
         OPERATOR = "operator", "Operator"
         VIEWER = "viewer", "Viewer"
+        CUSTOMER = "customer", "Customer"
 
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.VIEWER)
 
@@ -18,3 +19,6 @@ class User(AbstractUser):
 
     def is_operator(self) -> bool:
         return self.role in (self.Role.ADMIN, self.Role.OPERATOR)
+
+    def is_customer(self) -> bool:
+        return self.role == self.Role.CUSTOMER
