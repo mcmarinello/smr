@@ -91,6 +91,18 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
+# Billing — at-rest encryption for exchange credentials (PRD: multi-tenant
+# foundation spec, docs/specs/2026-07-23-multi-tenant-foundation-design.md).
+# Dev default is deterministic from SECRET_KEY so local/test runs work with
+# zero setup; production MUST override with a dedicated random Fernet key.
+import base64
+import hashlib
+
+_dev_encryption_key = base64.urlsafe_b64encode(hashlib.sha256(SECRET_KEY.encode()).digest()).decode()
+EXCHANGE_CREDENTIAL_ENCRYPTION_KEY = config(
+    "EXCHANGE_CREDENTIAL_ENCRYPTION_KEY", default=_dev_encryption_key
+)
+
 # Redis / Cache
 
 REDIS_URL = config("REDIS_URL", default="redis://localhost:6379/0")
