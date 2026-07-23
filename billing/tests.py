@@ -1,8 +1,10 @@
 from datetime import timedelta
 from decimal import Decimal
+from io import BytesIO
 from unittest.mock import patch
 
 import httpx
+from PIL import Image as PILImage
 from django.conf import settings
 from django.core import mail
 from django.db import IntegrityError
@@ -17,6 +19,7 @@ from billing.access import access_redirect
 from billing.crypto import decrypt_secret, encrypt_secret
 from billing.emails import send_verification_email
 from billing.models import CryptoPayment, CustomerProfile, ExchangeCredential, Favorite, PromoCode
+from billing.ocr import extract_tx_hash
 from billing.tasks import expire_subscriptions
 from billing.tokens import email_verification_token
 from billing.tron import TronVerificationError, verify_transaction
@@ -455,3 +458,23 @@ class VerifyTransactionTest(TestCase):
         mock_get.side_effect = httpx.ConnectError("connection refused")
         with self.assertRaises(TronVerificationError):
             verify_transaction("l" * 64, Decimal("10.00"))
+
+
+class ExtractTxHashTest(TestCase):
+    def _fake_image_bytes(self) -> BytesIO:
+        buffer = BytesIO()
+        PILImage.new("RGB", (10, 10)).save(buffer, format="PNG")
+        buffer.seek(0)
+        return buffer
+
+    @patch("billing.ocr.pytesseract.image_to_string")
+    def test_extracts_valid_hash_from_text(self, mock_ocr):
+        mock_ocr.return_value = f"Transaction Hash: {'a' * 64}\nStatus: Confirmed"
+        result = extract_tx_hash(self._fake_image_bytes())
+        self.assertEqual(result, "a" * 64)
+
+    @patch("billing.ocr.pytesseract.image_to_string")
+    def test_returns_none_when_no_hash_found(self, mock_ocr):
+        mock_ocr.return_value = "blurry unreadable text"
+        result = extract_tx_hash(self._fake_image_bytes())
+        self.assertIsNone(result)
