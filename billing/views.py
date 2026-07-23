@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from django.contrib.auth import login
 from django.db import transaction
-from django.http import HttpResponse
 from django.shortcuts import render
 from django.urls import reverse_lazy
 from django.utils.encoding import force_str
@@ -13,9 +12,9 @@ from django.views.generic import View as GenericView
 
 from accounts.models import User
 from billing.emails import send_verification_email
-from billing.forms import SignupForm
+from billing.forms import ExchangeCredentialForm, SignupForm
 from billing.mixins import SubscriptionRequiredMixin
-from billing.models import CustomerProfile
+from billing.models import CustomerProfile, ExchangeCredential
 from billing.tokens import email_verification_token
 
 
@@ -54,9 +53,17 @@ class VerifyEmailView(View):
         return render(request, "registration/verify_email_result.html", {"success": False}, status=400)
 
 
-class _GatedProbeView(SubscriptionRequiredMixin, GenericView):
-    def get(self, request):
-        return HttpResponse("ok")
+class ExchangeCredentialCreateView(SubscriptionRequiredMixin, FormView):
+    template_name = "registration/exchange_credential_form.html"
+    form_class = ExchangeCredentialForm
+    success_url = reverse_lazy("dashboard_home")
+
+    def form_valid(self, form):
+        credential = ExchangeCredential(user=self.request.user, exchange=form.cleaned_data["exchange"])
+        credential.set_api_key(form.cleaned_data["api_key"])
+        credential.set_api_secret(form.cleaned_data["api_secret"])
+        credential.save()
+        return super().form_valid(form)
 
 
 class SubscribeRequiredView(TemplateView):

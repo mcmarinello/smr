@@ -12,3 +12,11 @@ class SignupForm(UserCreationForm):
     class Meta(UserCreationForm.Meta):
         model = User
         fields = ("username", "email")
+
+
+class ExchangeCredentialForm(forms.Form):
+    EXCHANGE_CHOICES = [("binance", "Binance"), ("bybit", "Bybit")]
+
+    exchange = forms.ChoiceField(choices=EXCHANGE_CHOICES)
+    api_key = forms.CharField(widget=forms.PasswordInput)
+    api_secret = forms.CharField(widget=forms.PasswordInput)

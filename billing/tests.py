@@ -194,6 +194,24 @@ class SubscriptionGatingViewTest(TestCase):
         self.assertIn(reverse("login"), response.url)
 
 
+class ExchangeCredentialCreateViewTest(TestCase):
+    def test_creates_encrypted_credential(self):
+        user = User.objects.create_user(username="cliente20", password="x", role=User.Role.CUSTOMER)
+        CustomerProfile.objects.create(user=user, status=CustomerProfile.Status.ACTIVE)
+        self.client.force_login(user)
+
+        response = self.client.post(
+            reverse("billing:exchange_credential_create"),
+            {"exchange": "binance", "api_key": "AKIA-PLAIN", "api_secret": "SECRET-PLAIN"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        credential = ExchangeCredential.objects.get(user=user)
+        self.assertEqual(credential.exchange, "binance")
+        self.assertNotIn("AKIA-PLAIN", credential.api_key_encrypted)
+        self.assertEqual(credential.get_api_key(), "AKIA-PLAIN")
+
+
 class ExpireSubscriptionsTaskTest(TestCase):
     def test_expires_active_profiles_past_period_end(self):
         user = User.objects.create_user(username="cliente17", password="x", role=User.Role.CUSTOMER)
