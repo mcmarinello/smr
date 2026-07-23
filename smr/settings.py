@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "alerts",
     "copytrading",
     "bridge",
+    "billing",
     "dashboard",
     "wallet_engine",
     "monitoring",
@@ -118,6 +119,7 @@ CELERY_TASK_ROUTES = {
     "wallets.tasks.*": {"queue": "scoring"},
     "alerts.*": {"queue": "alerts"},
     "copytrading.*": {"queue": "copytrading"},
+    "billing.*": {"queue": "billing"},
 }
 
 # DatabaseScheduler reads this dict on startup and upserts PeriodicTask records.

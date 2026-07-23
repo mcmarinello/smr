@@ -26,6 +26,7 @@ dj-database-url==2.3.0
 
 # Django utilities
 django-extensions==4.1
+cryptography==44.0.0
 
 # Code quality
 black==25.1.0
