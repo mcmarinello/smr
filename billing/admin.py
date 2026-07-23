@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from billing.models import CustomerProfile, ExchangeCredential
+from billing.models import CustomerProfile, ExchangeCredential, Favorite
 
 
 @admin.register(CustomerProfile)
@@ -18,3 +18,10 @@ class ExchangeCredentialAdmin(admin.ModelAdmin):
     search_fields = ("user__username",)
     raw_id_fields = ("user",)
     readonly_fields = ("api_key_encrypted", "api_secret_encrypted")
+
+
+@admin.register(Favorite)
+class FavoriteAdmin(admin.ModelAdmin):
+    list_display = ("user", "wallet", "created_at")
+    search_fields = ("user__username", "wallet__address")
+    raw_id_fields = ("user", "wallet")

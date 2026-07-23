@@ -1,8 +1,10 @@
+from django.db import IntegrityError
 from django.test import TestCase
 
 from accounts.models import User
 from billing.crypto import decrypt_secret, encrypt_secret
-from billing.models import CustomerProfile, ExchangeCredential
+from billing.models import CustomerProfile, ExchangeCredential, Favorite
+from wallets.models import Wallet
 
 
 class CryptoTest(TestCase):
@@ -40,3 +42,12 @@ class CustomerProfileTest(TestCase):
         CustomerProfile.objects.create(user=user)
         with self.assertRaises(Exception):
             CustomerProfile.objects.create(user=user)
+
+
+class FavoriteTest(TestCase):
+    def test_unique_per_user_and_wallet(self):
+        user = User.objects.create_user(username="cliente5", password="x", role=User.Role.CUSTOMER)
+        wallet = Wallet.objects.create(address="0x" + "a" * 40)
+        Favorite.objects.create(user=user, wallet=wallet)
+        with self.assertRaises(IntegrityError):
+            Favorite.objects.create(user=user, wallet=wallet)

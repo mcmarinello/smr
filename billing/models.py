@@ -4,7 +4,7 @@ from django.db import models
 
 from accounts.models import User
 from billing.crypto import decrypt_secret, encrypt_secret
-from wallets.models import BaseModel
+from wallets.models import BaseModel, Wallet
 
 
 class CustomerProfile(BaseModel):
@@ -54,3 +54,14 @@ class ExchangeCredential(BaseModel):
 
     def __str__(self) -> str:
         return f"{self.user.username} — {self.exchange}"
+
+
+class Favorite(BaseModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="favorites")
+    wallet = models.ForeignKey(Wallet, on_delete=models.CASCADE, related_name="favorited_by")
+
+    class Meta:
+        unique_together = ("user", "wallet")
+
+    def __str__(self) -> str:
+        return f"{self.user.username} ★ {self.wallet.address}"
