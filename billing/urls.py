@@ -12,4 +12,5 @@ urlpatterns = [
     path("assine/", views.SubscribeRequiredView.as_view(), name="subscribe_required"),
     path("favoritos/<int:wallet_id>/", views.FavoriteToggleView.as_view(), name="favorite_toggle"),
     path("assinar/", views.SubscribeChoosePlanView.as_view(), name="subscribe_choose_plan"),
+    path("assinar/pagamento/<int:pk>/", views.CryptoPaymentDetailView.as_view(), name="crypto_payment_detail"),
 ]

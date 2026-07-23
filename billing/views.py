@@ -7,6 +7,7 @@ from django.conf import settings
 from django.contrib.auth import login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
+from django.db.models import F
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse, reverse_lazy
@@ -18,10 +19,12 @@ from django.views.generic import View as GenericView
 
 from accounts.models import User
 from billing.emails import send_verification_email
-from billing.forms import ExchangeCredentialForm, SignupForm, SubscribeChoosePlanForm
+from billing.forms import CryptoPaymentVerifyForm, ExchangeCredentialForm, SignupForm, SubscribeChoosePlanForm
 from billing.mixins import SubscriptionRequiredMixin
 from billing.models import CryptoPayment, CustomerProfile, ExchangeCredential, Favorite, PromoCode
+from billing.ocr import extract_tx_hash
 from billing.tokens import email_verification_token
+from billing.tron import TronVerificationError, verify_transaction
 from wallets.models import Wallet
 
 
@@ -116,4 +119,66 @@ class SubscribeChoosePlanView(LoginRequiredMixin, FormView):
             expires_at=timezone.now() + timedelta(minutes=settings.TRC20_PAYMENT_EXPIRY_MINUTES),
         )
         self.success_url = reverse("billing:crypto_payment_detail", kwargs={"pk": payment.pk})
+        return super().form_valid(form)
+
+
+class CryptoPaymentDetailView(LoginRequiredMixin, FormView):
+    template_name = "registration/crypto_payment_detail.html"
+    form_class = CryptoPaymentVerifyForm
+
+    def get_payment(self) -> CryptoPayment:
+        return get_object_or_404(CryptoPayment, pk=self.kwargs["pk"], user=self.request.user)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["payment"] = self.get_payment()
+        context["wallet_address"] = settings.TRC20_WALLET_ADDRESS
+        return context
+
+    def form_valid(self, form):
+        payment = self.get_payment()
+        if payment.status != CryptoPayment.Status.PENDING:
+            form.add_error(None, "Essa cobrança não está mais pendente.")
+            return self.form_invalid(form)
+
+        tx_hash = form.cleaned_data.get("tx_hash")
+        screenshot = form.cleaned_data.get("screenshot")
+
+        if not tx_hash and screenshot:
+            tx_hash = extract_tx_hash(screenshot)
+            if not tx_hash:
+                form.add_error(
+                    None,
+                    "Não conseguimos ler o hash dessa imagem automaticamente. "
+                    "Desculpe pelo inconveniente — cole o hash da transação manualmente abaixo.",
+                )
+                return self.form_invalid(form)
+
+        if CryptoPayment.objects.filter(tx_hash=tx_hash).exclude(pk=payment.pk).exists():
+            form.add_error(None, "Essa transação já foi usada em outra cobrança.")
+            return self.form_invalid(form)
+
+        try:
+            verify_transaction(tx_hash, payment.expected_amount_usdt)
+        except TronVerificationError as exc:
+            form.add_error(None, str(exc))
+            return self.form_invalid(form)
+
+        with transaction.atomic():
+            payment.tx_hash = tx_hash
+            payment.status = CryptoPayment.Status.CONFIRMED
+            payment.confirmed_at = timezone.now()
+            payment.save(update_fields=["tx_hash", "status", "confirmed_at"])
+
+            days = 30 if payment.plan_interval == CustomerProfile.Interval.MONTHLY else 365
+            profile, _ = CustomerProfile.objects.get_or_create(user=self.request.user)
+            profile.status = CustomerProfile.Status.ACTIVE
+            profile.plan_interval = payment.plan_interval
+            profile.current_period_end = timezone.now() + timedelta(days=days)
+            profile.save(update_fields=["status", "plan_interval", "current_period_end"])
+
+            if payment.promo_code_id:
+                PromoCode.objects.filter(pk=payment.promo_code_id).update(uses_count=F("uses_count") + 1)
+
+        self.success_url = reverse("dashboard_home")
         return super().form_valid(form)

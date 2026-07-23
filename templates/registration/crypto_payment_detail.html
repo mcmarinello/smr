@@ -1,0 +1,36 @@
+{% load l10n %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Pagamento via cripto — SMR</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f1117; color: #e0e0e0; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .box { background: #1a1d27; padding: 40px; border-radius: 12px; width: 100%; max-width: 480px; }
+        h1 { text-align: center; color: #4f9eff; }
+        .amount { text-align: center; font-size: 28px; font-weight: 700; margin: 16px 0; }
+        .address { background: #0f1117; border: 1px solid #374151; border-radius: 8px; padding: 12px; word-break: break-all; font-family: monospace; text-align: center; margin-bottom: 24px; }
+        label { display: block; margin: 16px 0 8px; font-size: 14px; color: #9ca3af; }
+        input { width: 100%; padding: 12px; border: 1px solid #374151; border-radius: 8px; background: #0f1117; color: #e0e0e0; box-sizing: border-box; }
+        button { width: 100%; margin-top: 20px; padding: 12px; background: #4f9eff; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
+        .error { color: #ef4444; font-size: 13px; margin-top: 8px; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h1>Pague em USDT (rede Tron/TRC-20)</h1>
+        <p class="amount">{{ payment.expected_amount_usdt|unlocalize }} USDT</p>
+        <p>Envie exatamente esse valor pra este endereço:</p>
+        <div class="address">{{ wallet_address }}</div>
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            {% for error in form.non_field_errors %}<p class="error">{{ error }}</p>{% endfor %}
+            <label for="id_tx_hash">Hash da transação</label>
+            {{ form.tx_hash }}
+            <label for="id_screenshot">Ou envie um print da transação</label>
+            {{ form.screenshot }}
+            <button type="submit">Confirmar pagamento</button>
+        </form>
+    </div>
+</body>
+</html>

@@ -26,3 +26,14 @@ class ExchangeCredentialForm(forms.Form):
 class SubscribeChoosePlanForm(forms.Form):
     plan_interval = forms.ChoiceField(choices=CustomerProfile.Interval.choices)
     promo_code = forms.CharField(max_length=32, required=False)
+
+
+class CryptoPaymentVerifyForm(forms.Form):
+    tx_hash = forms.CharField(max_length=64, required=False)
+    screenshot = forms.ImageField(required=False)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if not cleaned_data.get("tx_hash") and not cleaned_data.get("screenshot"):
+            raise forms.ValidationError("Informe o hash da transação ou envie um print.")
+        return cleaned_data

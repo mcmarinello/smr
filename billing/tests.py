@@ -7,6 +7,7 @@ import httpx
 from PIL import Image as PILImage
 from django.conf import settings
 from django.core import mail
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError
 from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
@@ -532,3 +533,145 @@ class ExtractTxHashTest(TestCase):
         mock_ocr.return_value = "blurry unreadable text"
         result = extract_tx_hash(self._fake_image_bytes())
         self.assertIsNone(result)
+
+
+class CryptoPaymentDetailViewTest(TestCase):
+    def _create_payment(self, user, amount="10.00"):
+        return CryptoPayment.objects.create(
+            user=user,
+            plan_interval=CustomerProfile.Interval.MONTHLY,
+            expected_amount_usdt=Decimal(amount),
+            expires_at=timezone.now() + timedelta(minutes=30),
+        )
+
+    def test_get_shows_address_and_amount(self):
+        user = User.objects.create_user(username="pagador1", password="x", role=User.Role.CUSTOMER)
+        CustomerProfile.objects.create(user=user)
+        payment = self._create_payment(user)
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("billing:crypto_payment_detail", kwargs={"pk": payment.pk}))
+
+        self.assertContains(response, "10.00")
+        self.assertContains(response, settings.TRC20_WALLET_ADDRESS)
+
+    @patch("billing.views.verify_transaction")
+    def test_valid_hash_activates_subscription(self, mock_verify):
+        mock_verify.return_value = Decimal("10.00")
+        user = User.objects.create_user(username="pagador2", password="x", role=User.Role.CUSTOMER)
+        CustomerProfile.objects.create(user=user)
+        payment = self._create_payment(user)
+        self.client.force_login(user)
+
+        response = self.client.post(
+            reverse("billing:crypto_payment_detail", kwargs={"pk": payment.pk}),
+            {"tx_hash": "a" * 64},
+        )
+
+        payment.refresh_from_db()
+        user.customer_profile.refresh_from_db()
+        self.assertEqual(payment.status, CryptoPayment.Status.CONFIRMED)
+        self.assertEqual(user.customer_profile.status, CustomerProfile.Status.ACTIVE)
+        self.assertEqual(user.customer_profile.plan_interval, CustomerProfile.Interval.MONTHLY)
+        self.assertRedirects(response, reverse("dashboard_home"))
+
+    @patch("billing.views.verify_transaction")
+    def test_invalid_hash_shows_error_and_does_not_activate(self, mock_verify):
+        mock_verify.side_effect = TronVerificationError(
+            "Transação não encontrada ou ainda não confirmada. Tente novamente em alguns segundos."
+        )
+        user = User.objects.create_user(username="pagador3", password="x", role=User.Role.CUSTOMER)
+        CustomerProfile.objects.create(user=user)
+        payment = self._create_payment(user)
+        self.client.force_login(user)
+
+        response = self.client.post(
+            reverse("billing:crypto_payment_detail", kwargs={"pk": payment.pk}),
+            {"tx_hash": "b" * 64},
+        )
+
+        payment.refresh_from_db()
+        self.assertEqual(payment.status, CryptoPayment.Status.PENDING)
+        self.assertContains(response, "Transação não encontrada")
+
+    @patch("billing.views.verify_transaction")
+    @patch("billing.views.extract_tx_hash")
+    def test_screenshot_extracts_hash_via_ocr(self, mock_extract, mock_verify):
+        mock_extract.return_value = "c" * 64
+        mock_verify.return_value = Decimal("10.00")
+        user = User.objects.create_user(username="pagador4", password="x", role=User.Role.CUSTOMER)
+        CustomerProfile.objects.create(user=user)
+        payment = self._create_payment(user)
+        self.client.force_login(user)
+
+        screenshot = SimpleUploadedFile("print.png", self._fake_png_bytes(), content_type="image/png")
+        response = self.client.post(
+            reverse("billing:crypto_payment_detail", kwargs={"pk": payment.pk}),
+            {"tx_hash": "", "screenshot": screenshot},
+        )
+
+        payment.refresh_from_db()
+        self.assertEqual(payment.status, CryptoPayment.Status.CONFIRMED)
+        self.assertEqual(payment.tx_hash, "c" * 64)
+
+    @patch("billing.views.extract_tx_hash")
+    def test_ocr_failure_asks_for_manual_hash(self, mock_extract):
+        mock_extract.return_value = None
+        user = User.objects.create_user(username="pagador5", password="x", role=User.Role.CUSTOMER)
+        CustomerProfile.objects.create(user=user)
+        payment = self._create_payment(user)
+        self.client.force_login(user)
+
+        screenshot = SimpleUploadedFile("print.png", self._fake_png_bytes(), content_type="image/png")
+        response = self.client.post(
+            reverse("billing:crypto_payment_detail", kwargs={"pk": payment.pk}),
+            {"tx_hash": "", "screenshot": screenshot},
+        )
+
+        payment.refresh_from_db()
+        self.assertEqual(payment.status, CryptoPayment.Status.PENDING)
+        self.assertContains(response, "cole o hash da transação manualmente")
+
+    @patch("billing.views.verify_transaction")
+    def test_reused_hash_is_rejected(self, mock_verify):
+        mock_verify.return_value = Decimal("10.00")
+        user = User.objects.create_user(username="pagador6", password="x", role=User.Role.CUSTOMER)
+        CustomerProfile.objects.create(user=user)
+        CryptoPayment.objects.create(
+            user=user,
+            plan_interval=CustomerProfile.Interval.MONTHLY,
+            expected_amount_usdt=Decimal("10.00"),
+            expires_at=timezone.now() + timedelta(minutes=30),
+            tx_hash="d" * 64,
+            status=CryptoPayment.Status.CONFIRMED,
+        )
+        payment = self._create_payment(user)
+        self.client.force_login(user)
+
+        response = self.client.post(
+            reverse("billing:crypto_payment_detail", kwargs={"pk": payment.pk}),
+            {"tx_hash": "d" * 64},
+        )
+
+        payment.refresh_from_db()
+        self.assertEqual(payment.status, CryptoPayment.Status.PENDING)
+        self.assertContains(response, "já foi usada")
+        mock_verify.assert_not_called()
+
+    def test_cannot_access_another_users_payment(self):
+        owner = User.objects.create_user(username="dono", password="x", role=User.Role.CUSTOMER)
+        CustomerProfile.objects.create(user=owner)
+        payment = self._create_payment(owner)
+        intruder = User.objects.create_user(username="intruso", password="x", role=User.Role.CUSTOMER)
+        CustomerProfile.objects.create(user=intruder)
+        self.client.force_login(intruder)
+
+        response = self.client.get(reverse("billing:crypto_payment_detail", kwargs={"pk": payment.pk}))
+
+        self.assertEqual(response.status_code, 404)
+
+    @staticmethod
+    def _fake_png_bytes() -> bytes:
+        buffer = BytesIO()
+        PILImage.new("RGB", (10, 10)).save(buffer, format="PNG")
+        return buffer.getvalue()
