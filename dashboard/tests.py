@@ -85,7 +85,7 @@ class DashboardFreemiumMaskingTest(TestCase):
 
         response = self.client.get(reverse("discovery_ranking"))
 
-        self.assertNotContains(response, "js-paywall-trigger")
+        self.assertNotContains(response, 'class="addr mono js-paywall-trigger"')
         self.assertNotContains(response, "•")
 
     def test_free_customer_sees_masked_address_in_dashboard_home(self):
@@ -107,7 +107,7 @@ class DashboardFreemiumMaskingTest(TestCase):
 
         response = self.client.get(reverse("dashboard_home"))
 
-        self.assertNotContains(response, "js-paywall-trigger")
+        self.assertNotContains(response, 'class="addr mono js-paywall-trigger"')
         self.assertNotContains(response, "•")
 
 

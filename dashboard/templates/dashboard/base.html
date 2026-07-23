@@ -64,8 +64,7 @@
 </div>
 <script>
 document.addEventListener("click", function (event) {
-  var selector = ".js-" + "paywall-trigger";
-  var trigger = event.target.closest(selector);
+  var trigger = event.target.closest(".js-paywall-trigger");
   if (trigger) {
     event.preventDefault();
     document.getElementById("paywall-modal").style.display = "flex";
