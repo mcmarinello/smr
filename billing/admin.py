@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from billing.models import CustomerProfile, ExchangeCredential, Favorite, PromoCode
+from billing.models import CryptoPayment, CustomerProfile, ExchangeCredential, Favorite, PromoCode
 
 
 @admin.register(CustomerProfile)
@@ -32,3 +32,11 @@ class PromoCodeAdmin(admin.ModelAdmin):
     list_display = ("code", "discount_percent", "uses_count", "max_uses", "valid_until", "is_active")
     list_filter = ("is_active",)
     search_fields = ("code",)
+
+
+@admin.register(CryptoPayment)
+class CryptoPaymentAdmin(admin.ModelAdmin):
+    list_display = ("user", "plan_interval", "expected_amount_usdt", "status", "expires_at", "confirmed_at")
+    list_filter = ("status", "plan_interval")
+    search_fields = ("user__username", "tx_hash")
+    raw_id_fields = ("user", "promo_code")

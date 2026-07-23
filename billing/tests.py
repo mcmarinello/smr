@@ -1,4 +1,5 @@
 from datetime import timedelta
+from decimal import Decimal
 
 from django.core import mail
 from django.db import IntegrityError
@@ -12,7 +13,7 @@ from accounts.models import User
 from billing.access import access_redirect
 from billing.crypto import decrypt_secret, encrypt_secret
 from billing.emails import send_verification_email
-from billing.models import CustomerProfile, ExchangeCredential, Favorite, PromoCode
+from billing.models import CryptoPayment, CustomerProfile, ExchangeCredential, Favorite, PromoCode
 from billing.tasks import expire_subscriptions
 from billing.tokens import email_verification_token
 from wallets.models import Wallet
@@ -311,3 +312,52 @@ class PromoCodeTest(TestCase):
     def test_code_with_no_max_uses_is_always_valid_by_use_count(self):
         promo = PromoCode.objects.create(code="UNLIMITED", discount_percent=10, uses_count=1000)
         self.assertTrue(promo.is_valid())
+
+
+class CryptoPaymentTest(TestCase):
+    def test_default_status_is_pending(self):
+        user = User.objects.create_user(username="cripto1", password="x", role=User.Role.CUSTOMER)
+        payment = CryptoPayment.objects.create(
+            user=user,
+            plan_interval=CustomerProfile.Interval.MONTHLY,
+            expected_amount_usdt=Decimal("10.00"),
+            expires_at=timezone.now() + timedelta(minutes=30),
+        )
+        self.assertEqual(payment.status, CryptoPayment.Status.PENDING)
+        self.assertIsNone(payment.tx_hash)
+
+    def test_tx_hash_unique_across_payments(self):
+        user = User.objects.create_user(username="cripto2", password="x", role=User.Role.CUSTOMER)
+        CryptoPayment.objects.create(
+            user=user,
+            plan_interval=CustomerProfile.Interval.MONTHLY,
+            expected_amount_usdt=Decimal("10.00"),
+            expires_at=timezone.now() + timedelta(minutes=30),
+            tx_hash="a" * 64,
+            status=CryptoPayment.Status.CONFIRMED,
+        )
+        with self.assertRaises(IntegrityError):
+            CryptoPayment.objects.create(
+                user=user,
+                plan_interval=CustomerProfile.Interval.MONTHLY,
+                expected_amount_usdt=Decimal("10.00"),
+                expires_at=timezone.now() + timedelta(minutes=30),
+                tx_hash="a" * 64,
+                status=CryptoPayment.Status.CONFIRMED,
+            )
+
+    def test_multiple_pending_payments_can_have_null_tx_hash(self):
+        user = User.objects.create_user(username="cripto3", password="x", role=User.Role.CUSTOMER)
+        CryptoPayment.objects.create(
+            user=user,
+            plan_interval=CustomerProfile.Interval.MONTHLY,
+            expected_amount_usdt=Decimal("10.00"),
+            expires_at=timezone.now() + timedelta(minutes=30),
+        )
+        CryptoPayment.objects.create(
+            user=user,
+            plan_interval=CustomerProfile.Interval.ANNUAL,
+            expected_amount_usdt=Decimal("100.00"),
+            expires_at=timezone.now() + timedelta(minutes=30),
+        )
+        self.assertEqual(CryptoPayment.objects.filter(user=user).count(), 2)

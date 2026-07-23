@@ -88,3 +88,22 @@ class PromoCode(BaseModel):
 
     def __str__(self) -> str:
         return f"{self.code} (-{self.discount_percent}%)"
+
+
+class CryptoPayment(BaseModel):
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        CONFIRMED = "confirmed", "Confirmed"
+        EXPIRED = "expired", "Expired"
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="crypto_payments")
+    plan_interval = models.CharField(max_length=20, choices=CustomerProfile.Interval.choices)
+    expected_amount_usdt = models.DecimalField(max_digits=12, decimal_places=6)
+    promo_code = models.ForeignKey(PromoCode, null=True, blank=True, on_delete=models.SET_NULL)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    tx_hash = models.CharField(max_length=64, unique=True, null=True, blank=True)
+    expires_at = models.DateTimeField()
+    confirmed_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self) -> str:
+        return f"{self.user.username} — {self.expected_amount_usdt} USDT ({self.status})"
