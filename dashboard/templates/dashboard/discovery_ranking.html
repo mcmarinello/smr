@@ -1,4 +1,5 @@
 {% extends "dashboard/base.html" %}
+{% load dashboard_extras %}
 {% block title %}SMR — Discovery · Ranking Geral{% endblock %}
 {% block content %}
 <div class="main__header">
@@ -66,7 +67,11 @@
         <tr>
           <td class="num">{{ s.rank|default:"—" }}</td>
           <td>
-            <a class="addr mono" href="{% url 'wallet_profile' s.wallet.address %}">{{ s.wallet.address|truncatechars:14 }}</a>
+            {% if has_full_access %}
+              <a class="addr mono" href="{% url 'wallet_profile' s.wallet.address %}">{{ s.wallet.address|truncatechars:14 }}</a>
+            {% else %}
+              <a href="#" class="addr mono js-paywall-trigger">{{ s.wallet.address|mask_address }}</a>
+            {% endif %}
           </td>
           <td class="num">{{ s.score_raw|floatformat:1 }}</td>
           <td class="num">{{ s.score_deleveraged|floatformat:1 }}</td>

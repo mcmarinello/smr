@@ -1,4 +1,5 @@
 {% extends "dashboard/base.html" %}
+{% load dashboard_extras %}
 {% block title %}SMR — Visão Geral{% endblock %}
 {% block content %}
 <div class="main__header">
@@ -83,8 +84,10 @@
           <td><span class="badge badge--{{ n.level }}">{{ n.get_level_display }}</span></td>
           <td>{{ n.title }}</td>
           <td>
-            {% if n.wallet %}
+            {% if n.wallet and has_full_access %}
               <a class="addr mono" href="{% url 'wallet_profile' n.wallet.address %}">{{ n.wallet.address|truncatechars:12 }}</a>
+            {% elif n.wallet %}
+              <a href="#" class="addr mono js-paywall-trigger">{{ n.wallet.address|mask_address }}</a>
             {% else %}—{% endif %}
           </td>
           <td>

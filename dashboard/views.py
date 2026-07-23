@@ -8,6 +8,7 @@ All labels are pt-BR per CLAUDE.md.
 from __future__ import annotations
 
 from django.contrib.auth.decorators import login_required
+from billing.access import has_full_access
 from billing.decorators import subscription_required
 from django.db.models import Max
 from django.shortcuts import get_object_or_404, redirect, render
@@ -83,6 +84,7 @@ def dashboard_home(request):
         "unread_alerts": unread_alerts,
         "discovery_status": discovery_status,
         "recent_alerts": recent_alerts,
+        "has_full_access": has_full_access(request.user),
     }
     return render(request, "dashboard/dashboard_home.html", context)
 
@@ -169,6 +171,7 @@ def discovery_ranking(request):
         "target_only": target_only,
         "classifications": WalletScore.Classification.choices,
         "sources": Wallet.DiscoverySource.choices,
+        "has_full_access": has_full_access(request.user),
     }
     return render(request, "dashboard/discovery_ranking.html", context)
 

@@ -1,10 +1,12 @@
 from django.template import Context, Template
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from accounts.models import User
+from alerts.models import Notification
 from billing.models import CustomerProfile
-from wallets.models import Wallet
+from wallets.models import Wallet, WalletScore, Window
 
 
 class MaskAddressFilterTest(TestCase):
@@ -59,3 +61,51 @@ class DashboardGatingTest(TestCase):
         for url in self.gated_urls:
             response = self.client.get(url)
             self.assertNotEqual(response.status_code, 302, f"URL {url} unexpectedly redirected")
+
+
+class DashboardFreemiumMaskingTest(TestCase):
+    def setUp(self):
+        self.wallet = Wallet.objects.create(address="0x" + "b" * 40)
+        WalletScore.objects.create(wallet=self.wallet, window=Window.D7, computed_at=timezone.now())
+
+    def test_free_customer_sees_masked_address_in_discovery_ranking(self):
+        user = User.objects.create_user(username="free4", password="x", role=User.Role.CUSTOMER)
+        CustomerProfile.objects.create(user=user, status=CustomerProfile.Status.FREE)
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("discovery_ranking"))
+
+        self.assertContains(response, "js-paywall-trigger")
+        self.assertContains(response, "•")
+
+    def test_active_customer_sees_real_link_in_discovery_ranking(self):
+        user = User.objects.create_user(username="active4", password="x", role=User.Role.CUSTOMER)
+        CustomerProfile.objects.create(user=user, status=CustomerProfile.Status.ACTIVE)
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("discovery_ranking"))
+
+        self.assertNotContains(response, "js-paywall-trigger")
+        self.assertNotContains(response, "•")
+
+    def test_free_customer_sees_masked_address_in_dashboard_home(self):
+        user = User.objects.create_user(username="free5", password="x", role=User.Role.CUSTOMER)
+        CustomerProfile.objects.create(user=user, status=CustomerProfile.Status.FREE)
+        Notification.objects.create(user=user, wallet=self.wallet, title="Teste", body="Teste", event_type="test")
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("dashboard_home"))
+
+        self.assertContains(response, "js-paywall-trigger")
+        self.assertContains(response, "•")
+
+    def test_active_customer_sees_real_link_in_dashboard_home(self):
+        user = User.objects.create_user(username="active5", password="x", role=User.Role.CUSTOMER)
+        CustomerProfile.objects.create(user=user, status=CustomerProfile.Status.ACTIVE)
+        Notification.objects.create(user=user, wallet=self.wallet, title="Teste", body="Teste", event_type="test")
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("dashboard_home"))
+
+        self.assertNotContains(response, "js-paywall-trigger")
+        self.assertNotContains(response, "•")
