@@ -460,6 +460,60 @@ class VerifyTransactionTest(TestCase):
             verify_transaction("l" * 64, Decimal("10.00"))
 
 
+class SubscribeChoosePlanViewTest(TestCase):
+    def test_creates_pending_payment_without_promo(self):
+        user = User.objects.create_user(username="assinante1", password="x", role=User.Role.CUSTOMER)
+        CustomerProfile.objects.create(user=user)
+        self.client.force_login(user)
+
+        response = self.client.post(
+            reverse("billing:subscribe_choose_plan"),
+            {"plan_interval": CustomerProfile.Interval.MONTHLY, "promo_code": ""},
+        )
+
+        payment = CryptoPayment.objects.get(user=user)
+        self.assertEqual(payment.expected_amount_usdt, Decimal(str(settings.TRC20_MONTHLY_PRICE_USDT)))
+        self.assertEqual(payment.status, CryptoPayment.Status.PENDING)
+        self.assertRedirects(response, reverse("billing:crypto_payment_detail", kwargs={"pk": payment.pk}))
+
+    def test_applies_valid_promo_code_discount(self):
+        user = User.objects.create_user(username="assinante2", password="x", role=User.Role.CUSTOMER)
+        CustomerProfile.objects.create(user=user)
+        PromoCode.objects.create(code="METADE", discount_percent=50)
+        self.client.force_login(user)
+
+        self.client.post(
+            reverse("billing:subscribe_choose_plan"),
+            {"plan_interval": CustomerProfile.Interval.MONTHLY, "promo_code": "METADE"},
+        )
+
+        payment = CryptoPayment.objects.get(user=user)
+        expected = Decimal(str(settings.TRC20_MONTHLY_PRICE_USDT)) * Decimal("0.5")
+        self.assertEqual(payment.expected_amount_usdt, expected)
+        self.assertEqual(payment.promo_code.code, "METADE")
+
+    def test_rejects_invalid_promo_code(self):
+        user = User.objects.create_user(username="assinante3", password="x", role=User.Role.CUSTOMER)
+        CustomerProfile.objects.create(user=user)
+        self.client.force_login(user)
+
+        response = self.client.post(
+            reverse("billing:subscribe_choose_plan"),
+            {"plan_interval": CustomerProfile.Interval.MONTHLY, "promo_code": "NAOEXISTE"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(CryptoPayment.objects.filter(user=user).exists())
+
+    def test_requires_login(self):
+        response = self.client.post(
+            reverse("billing:subscribe_choose_plan"),
+            {"plan_interval": CustomerProfile.Interval.MONTHLY, "promo_code": ""},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse("login"), response.url)
+
+
 class ExtractTxHashTest(TestCase):
     def _fake_image_bytes(self) -> BytesIO:
         buffer = BytesIO()

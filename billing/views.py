@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+from datetime import timedelta
+from decimal import Decimal
+
+from django.conf import settings
 from django.contrib.auth import login
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
+from django.utils import timezone
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
 from django.views.generic import FormView, TemplateView
@@ -12,9 +18,9 @@ from django.views.generic import View as GenericView
 
 from accounts.models import User
 from billing.emails import send_verification_email
-from billing.forms import ExchangeCredentialForm, SignupForm
+from billing.forms import ExchangeCredentialForm, SignupForm, SubscribeChoosePlanForm
 from billing.mixins import SubscriptionRequiredMixin
-from billing.models import CustomerProfile, ExchangeCredential, Favorite
+from billing.models import CryptoPayment, CustomerProfile, ExchangeCredential, Favorite, PromoCode
 from billing.tokens import email_verification_token
 from wallets.models import Wallet
 
@@ -79,3 +85,35 @@ class FavoriteToggleView(SubscriptionRequiredMixin, GenericView):
             favorite.delete()
             return JsonResponse({"favorited": False})
         return JsonResponse({"favorited": True})
+
+
+class SubscribeChoosePlanView(LoginRequiredMixin, FormView):
+    template_name = "registration/subscribe_choose_plan.html"
+    form_class = SubscribeChoosePlanForm
+
+    def form_valid(self, form):
+        plan_interval = form.cleaned_data["plan_interval"]
+        promo_input = form.cleaned_data["promo_code"]
+
+        if plan_interval == CustomerProfile.Interval.MONTHLY:
+            amount = Decimal(str(settings.TRC20_MONTHLY_PRICE_USDT))
+        else:
+            amount = Decimal(str(settings.TRC20_ANNUAL_PRICE_USDT))
+
+        promo = None
+        if promo_input:
+            promo = PromoCode.objects.filter(code=promo_input).first()
+            if promo is None or not promo.is_valid():
+                form.add_error("promo_code", "Código promocional inválido ou expirado.")
+                return self.form_invalid(form)
+            amount = amount * (Decimal(100 - promo.discount_percent) / Decimal(100))
+
+        payment = CryptoPayment.objects.create(
+            user=self.request.user,
+            plan_interval=plan_interval,
+            expected_amount_usdt=amount,
+            promo_code=promo,
+            expires_at=timezone.now() + timedelta(minutes=settings.TRC20_PAYMENT_EXPIRY_MINUTES),
+        )
+        self.success_url = reverse("billing:crypto_payment_detail", kwargs={"pk": payment.pk})
+        return super().form_valid(form)

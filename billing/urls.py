@@ -11,4 +11,5 @@ urlpatterns = [
     path("minhas-credenciais/", views.ExchangeCredentialCreateView.as_view(), name="exchange_credential_create"),
     path("assine/", views.SubscribeRequiredView.as_view(), name="subscribe_required"),
     path("favoritos/<int:wallet_id>/", views.FavoriteToggleView.as_view(), name="favorite_toggle"),
+    path("assinar/", views.SubscribeChoosePlanView.as_view(), name="subscribe_choose_plan"),
 ]

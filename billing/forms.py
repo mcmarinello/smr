@@ -4,6 +4,7 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 
 from accounts.models import User
+from billing.models import CustomerProfile
 
 
 class SignupForm(UserCreationForm):
@@ -20,3 +21,8 @@ class ExchangeCredentialForm(forms.Form):
     exchange = forms.ChoiceField(choices=EXCHANGE_CHOICES)
     api_key = forms.CharField(widget=forms.PasswordInput)
     api_secret = forms.CharField(widget=forms.PasswordInput)
+
+
+class SubscribeChoosePlanForm(forms.Form):
+    plan_interval = forms.ChoiceField(choices=CustomerProfile.Interval.choices)
+    promo_code = forms.CharField(max_length=32, required=False)
