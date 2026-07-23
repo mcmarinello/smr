@@ -21,7 +21,7 @@ from billing.crypto import decrypt_secret, encrypt_secret
 from billing.emails import send_verification_email
 from billing.models import CryptoPayment, CustomerProfile, ExchangeCredential, Favorite, PromoCode
 from billing.ocr import extract_tx_hash
-from billing.tasks import expire_subscriptions
+from billing.tasks import expire_crypto_payments, expire_subscriptions
 from billing.tokens import email_verification_token
 from billing.tron import TronVerificationError, verify_transaction
 from wallets.models import Wallet
@@ -267,6 +267,53 @@ class ExpireSubscriptionsTaskTest(TestCase):
 
         profile.refresh_from_db()
         self.assertEqual(profile.status, CustomerProfile.Status.FREE)
+
+
+class ExpireCryptoPaymentsTaskTest(TestCase):
+    def test_expires_pending_payments_past_expiry(self):
+        user = User.objects.create_user(username="expira1", password="x", role=User.Role.CUSTOMER)
+        payment = CryptoPayment.objects.create(
+            user=user,
+            plan_interval=CustomerProfile.Interval.MONTHLY,
+            expected_amount_usdt=Decimal("10.00"),
+            expires_at=timezone.now() - timedelta(minutes=1),
+        )
+
+        count = expire_crypto_payments()
+
+        payment.refresh_from_db()
+        self.assertEqual(count, 1)
+        self.assertEqual(payment.status, CryptoPayment.Status.EXPIRED)
+
+    def test_leaves_pending_payments_within_window_untouched(self):
+        user = User.objects.create_user(username="expira2", password="x", role=User.Role.CUSTOMER)
+        payment = CryptoPayment.objects.create(
+            user=user,
+            plan_interval=CustomerProfile.Interval.MONTHLY,
+            expected_amount_usdt=Decimal("10.00"),
+            expires_at=timezone.now() + timedelta(minutes=10),
+        )
+
+        expire_crypto_payments()
+
+        payment.refresh_from_db()
+        self.assertEqual(payment.status, CryptoPayment.Status.PENDING)
+
+    def test_leaves_confirmed_payments_untouched(self):
+        user = User.objects.create_user(username="expira3", password="x", role=User.Role.CUSTOMER)
+        payment = CryptoPayment.objects.create(
+            user=user,
+            plan_interval=CustomerProfile.Interval.MONTHLY,
+            expected_amount_usdt=Decimal("10.00"),
+            expires_at=timezone.now() - timedelta(minutes=1),
+            status=CryptoPayment.Status.CONFIRMED,
+            tx_hash="e" * 64,
+        )
+
+        expire_crypto_payments()
+
+        payment.refresh_from_db()
+        self.assertEqual(payment.status, CryptoPayment.Status.CONFIRMED)
 
 
 class FavoriteToggleViewTest(TestCase):

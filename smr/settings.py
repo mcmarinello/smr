@@ -190,6 +190,11 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": 60 * 60,  # 1 hour in seconds
         "options": {"queue": "billing"},
     },
+    "billing-expire-crypto-payments-every-5m": {
+        "task": "billing.tasks.expire_crypto_payments",
+        "schedule": 5 * 60,  # 5 minutes in seconds — pending window is short (30min default)
+        "options": {"queue": "billing"},
+    },
 }
 
 # Discovery Engine tuning (override in .env)
