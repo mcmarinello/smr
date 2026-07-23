@@ -52,7 +52,11 @@ produto (KPIs, ranking de score) sem entregar o dado que tem valor real
 - **Fora de escopo, lacuna conhecida**: alertas via Telegram/e-mail
   continuam revelando a wallet completa mesmo pra cliente `free` — a
   camada `alerts/` não tem noção de assinatura ainda. Não resolvido
-  neste spec.
+  neste spec. Achado pela revisão final da branch: o título dos
+  alertas exibidos na própria `dashboard_home` (view free) também
+  mostra `address[:8]` (2 caracteres a mais que a máscara de 6), sem
+  expor o endereço completo — aceito como parte do mesmo gap acima,
+  registrado aqui por completude.
 
 ## Implementação
 
