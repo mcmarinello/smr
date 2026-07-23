@@ -10,6 +10,7 @@ actively consumed (PRD §20.3).
 
 from __future__ import annotations
 
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
 
 
@@ -26,7 +27,10 @@ class BridgeAccessLog(models.Model):
     endpoint = models.CharField(max_length=255)
     response_code = models.IntegerField()
     data_snapshot = models.JSONField(
-        default=dict, blank=True, help_text="JSON body returned to the requester."
+        default=dict,
+        blank=True,
+        encoder=DjangoJSONEncoder,
+        help_text="JSON body returned to the requester.",
     )
 
     class Meta:
