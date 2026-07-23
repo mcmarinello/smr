@@ -1,6 +1,8 @@
 from datetime import timedelta
 from decimal import Decimal
+from unittest.mock import patch
 
+from django.conf import settings
 from django.core import mail
 from django.db import IntegrityError
 from django.test import RequestFactory, TestCase, override_settings
@@ -16,6 +18,7 @@ from billing.emails import send_verification_email
 from billing.models import CryptoPayment, CustomerProfile, ExchangeCredential, Favorite, PromoCode
 from billing.tasks import expire_subscriptions
 from billing.tokens import email_verification_token
+from billing.tron import TronVerificationError, verify_transaction
 from wallets.models import Wallet
 
 
@@ -361,3 +364,87 @@ class CryptoPaymentTest(TestCase):
             expires_at=timezone.now() + timedelta(minutes=30),
         )
         self.assertEqual(CryptoPayment.objects.filter(user=user).count(), 2)
+
+
+class VerifyTransactionTest(TestCase):
+    @patch("billing.tron.httpx.get")
+    def test_valid_transfer_returns_amount(self, mock_get):
+        mock_get.return_value.json.return_value = {
+            "data": [
+                {
+                    "event_name": "Transfer",
+                    "contract_address": settings.TRC20_USDT_CONTRACT_ADDRESS,
+                    "result": {"from": "TSender111", "to": settings.TRC20_WALLET_ADDRESS, "value": "10000000"},
+                }
+            ]
+        }
+        mock_get.return_value.raise_for_status.return_value = None
+        amount = verify_transaction("f" * 64, Decimal("10.00"))
+        self.assertEqual(amount, Decimal("10.00"))
+
+    @patch("billing.tron.httpx.get")
+    def test_no_matching_event_raises(self, mock_get):
+        mock_get.return_value.json.return_value = {"data": []}
+        mock_get.return_value.raise_for_status.return_value = None
+        with self.assertRaises(TronVerificationError):
+            verify_transaction("g" * 64, Decimal("10.00"))
+
+    @patch("billing.tron.httpx.get")
+    def test_wrong_recipient_raises(self, mock_get):
+        mock_get.return_value.json.return_value = {
+            "data": [
+                {
+                    "event_name": "Transfer",
+                    "contract_address": settings.TRC20_USDT_CONTRACT_ADDRESS,
+                    "result": {"from": "TSender111", "to": "TOutraCarteira999", "value": "10000000"},
+                }
+            ]
+        }
+        mock_get.return_value.raise_for_status.return_value = None
+        with self.assertRaises(TronVerificationError):
+            verify_transaction("h" * 64, Decimal("10.00"))
+
+    @patch("billing.tron.httpx.get")
+    def test_wrong_contract_raises(self, mock_get):
+        mock_get.return_value.json.return_value = {
+            "data": [
+                {
+                    "event_name": "Transfer",
+                    "contract_address": "TOutroContrato999",
+                    "result": {"from": "TSender111", "to": settings.TRC20_WALLET_ADDRESS, "value": "10000000"},
+                }
+            ]
+        }
+        mock_get.return_value.raise_for_status.return_value = None
+        with self.assertRaises(TronVerificationError):
+            verify_transaction("i" * 64, Decimal("10.00"))
+
+    @patch("billing.tron.httpx.get")
+    def test_underpaid_raises(self, mock_get):
+        mock_get.return_value.json.return_value = {
+            "data": [
+                {
+                    "event_name": "Transfer",
+                    "contract_address": settings.TRC20_USDT_CONTRACT_ADDRESS,
+                    "result": {"from": "TSender111", "to": settings.TRC20_WALLET_ADDRESS, "value": "5000000"},
+                }
+            ]
+        }
+        mock_get.return_value.raise_for_status.return_value = None
+        with self.assertRaises(TronVerificationError):
+            verify_transaction("j" * 64, Decimal("10.00"))
+
+    @patch("billing.tron.httpx.get")
+    def test_overpaid_is_accepted(self, mock_get):
+        mock_get.return_value.json.return_value = {
+            "data": [
+                {
+                    "event_name": "Transfer",
+                    "contract_address": settings.TRC20_USDT_CONTRACT_ADDRESS,
+                    "result": {"from": "TSender111", "to": settings.TRC20_WALLET_ADDRESS, "value": "15000000"},
+                }
+            ]
+        }
+        mock_get.return_value.raise_for_status.return_value = None
+        amount = verify_transaction("k" * 64, Decimal("10.00"))
+        self.assertEqual(amount, Decimal("15.00"))
