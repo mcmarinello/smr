@@ -2,6 +2,7 @@ from datetime import timedelta
 from decimal import Decimal
 from unittest.mock import patch
 
+import httpx
 from django.conf import settings
 from django.core import mail
 from django.db import IntegrityError
@@ -448,3 +449,9 @@ class VerifyTransactionTest(TestCase):
         mock_get.return_value.raise_for_status.return_value = None
         amount = verify_transaction("k" * 64, Decimal("10.00"))
         self.assertEqual(amount, Decimal("15.00"))
+
+    @patch("billing.tron.httpx.get")
+    def test_network_failure_raises_tron_verification_error(self, mock_get):
+        mock_get.side_effect = httpx.ConnectError("connection refused")
+        with self.assertRaises(TronVerificationError):
+            verify_transaction("l" * 64, Decimal("10.00"))

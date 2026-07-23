@@ -13,7 +13,7 @@ class TronVerificationError(Exception):
     """Message is a ready-to-display pt-BR string explaining the failure."""
 
 
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=8))
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=8), reraise=True)
 def _fetch_transaction_events(tx_hash: str) -> list[dict]:
     headers = {"TRON-PRO-API-KEY": settings.TRONGRID_API_KEY} if settings.TRONGRID_API_KEY else {}
     response = httpx.get(
@@ -27,7 +27,12 @@ def _fetch_transaction_events(tx_hash: str) -> list[dict]:
 
 def verify_transaction(tx_hash: str, expected_amount: Decimal) -> Decimal:
     """Returns the actual amount received (USDT), or raises TronVerificationError."""
-    events = _fetch_transaction_events(tx_hash)
+    try:
+        events = _fetch_transaction_events(tx_hash)
+    except httpx.HTTPError as exc:
+        raise TronVerificationError(
+            "Não foi possível consultar a blockchain agora. Tente novamente em alguns instantes."
+        ) from exc
 
     for event in events:
         if event.get("event_name") != "Transfer":
