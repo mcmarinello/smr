@@ -144,6 +144,12 @@ class VerifyEmailViewTest(TestCase):
         user.customer_profile.refresh_from_db()
         self.assertFalse(user.customer_profile.email_verified)
 
+    def test_staff_user_uidb64_does_not_crash(self):
+        staff = User.objects.create_user(username="staffnoprofile", password="x", role=User.Role.VIEWER)
+        uidb64 = urlsafe_base64_encode(force_bytes(staff.pk))
+        response = self.client.get(reverse("billing:verify_email", kwargs={"uidb64": uidb64, "token": "qualquer-coisa"}))
+        self.assertEqual(response.status_code, 400)
+
 
 class AccessRedirectTest(TestCase):
     def test_staff_always_allowed(self):
@@ -165,6 +171,10 @@ class AccessRedirectTest(TestCase):
         user = User.objects.create_user(username="cliente14", password="x", role=User.Role.CUSTOMER)
         CustomerProfile.objects.create(user=user, status=CustomerProfile.Status.ACTIVE, email_verified=False)
         self.assertEqual(access_redirect(user), "billing:verify_email_sent")
+
+    def test_customer_without_profile_is_redirected_not_crashed(self):
+        user = User.objects.create_user(username="clientesemperfil", password="x", role=User.Role.CUSTOMER)
+        self.assertEqual(access_redirect(user), "billing:subscribe_required")
 
 
 class SubscriptionGatingViewTest(TestCase):

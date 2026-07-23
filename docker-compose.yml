@@ -117,6 +117,10 @@ services:
     <<: *worker-common
     command: celery -A smr worker -Q alerts -c 2 -n alerts@%h --loglevel=info
 
+  worker_billing:
+    <<: *worker-common
+    command: celery -A smr worker -Q billing -c 2 -n billing@%h --loglevel=info
+
   beat:
     <<: *worker-common
     command: celery -A smr beat --scheduler django_celery_beat.schedulers:DatabaseScheduler --loglevel=info

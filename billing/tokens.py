@@ -11,7 +11,9 @@ class EmailVerificationTokenGenerator(PasswordResetTokenGenerator):
     """
 
     def _make_hash_value(self, user, timestamp):
-        return f"{user.pk}{timestamp}{user.customer_profile.email_verified}"
+        profile = getattr(user, "customer_profile", None)
+        email_verified = profile.email_verified if profile else False
+        return f"{user.pk}{timestamp}{email_verified}"
 
 
 email_verification_token = EmailVerificationTokenGenerator()

@@ -14,7 +14,10 @@ def access_redirect(user) -> str | None:
     if user.role != User.Role.CUSTOMER:
         return None
 
-    profile = user.customer_profile
+    try:
+        profile = user.customer_profile
+    except CustomerProfile.DoesNotExist:
+        return "billing:subscribe_required"
     if settings.EMAIL_VERIFICATION_REQUIRED and not profile.email_verified:
         return "billing:verify_email_sent"
     if profile.status != CustomerProfile.Status.ACTIVE:

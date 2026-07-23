@@ -163,7 +163,7 @@ services:
 
   worker-alerts:
     <<: *worker-common
-    command: ["celery", "-A", "smr", "worker", "-Q", "alerts,copytrading", "-c", "2", "-n", "alerts@%h", "--loglevel=info"]
+    command: ["celery", "-A", "smr", "worker", "-Q", "alerts,copytrading,billing", "-c", "2", "-n", "alerts@%h", "--loglevel=info"]
     deploy:
       resources:
         limits:

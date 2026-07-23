@@ -7,7 +7,6 @@ from django.shortcuts import get_object_or_404, render
 from django.urls import reverse_lazy
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
-from django.views import View
 from django.views.generic import FormView, TemplateView
 from django.views.generic import View as GenericView
 
@@ -40,7 +39,7 @@ class VerifyEmailSentView(TemplateView):
     template_name = "registration/verify_email_sent.html"
 
 
-class VerifyEmailView(View):
+class VerifyEmailView(GenericView):
     def get(self, request, uidb64, token):
         try:
             uid = force_str(urlsafe_base64_decode(uidb64))
