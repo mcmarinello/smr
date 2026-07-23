@@ -1,10 +1,15 @@
+from django.core import mail
 from django.db import IntegrityError
-from django.test import TestCase
+from django.test import RequestFactory, TestCase
 from django.urls import reverse
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
 
 from accounts.models import User
 from billing.crypto import decrypt_secret, encrypt_secret
+from billing.emails import send_verification_email
 from billing.models import CustomerProfile, ExchangeCredential, Favorite
+from billing.tokens import email_verification_token
 from wallets.models import Wallet
 
 
@@ -68,7 +73,7 @@ class SignupViewTest(TestCase):
         user = User.objects.get(username="novocliente")
         self.assertEqual(user.role, User.Role.CUSTOMER)
         self.assertEqual(user.customer_profile.status, CustomerProfile.Status.FREE)
-        self.assertRedirects(response, "/app/")
+        self.assertRedirects(response, reverse("billing:verify_email_sent"))
 
     def test_signup_logs_the_user_in(self):
         self.client.post(
@@ -82,3 +87,54 @@ class SignupViewTest(TestCase):
         )
         response = self.client.get(reverse("dashboard_home"))
         self.assertEqual(response.wsgi_request.user.username, "cliente6")
+
+
+class EmailVerificationTokenTest(TestCase):
+    def test_token_is_valid_for_unverified_user(self):
+        user = User.objects.create_user(username="cliente7", password="x", role=User.Role.CUSTOMER)
+        CustomerProfile.objects.create(user=user)
+        token = email_verification_token.make_token(user)
+        self.assertTrue(email_verification_token.check_token(user, token))
+
+    def test_token_is_invalid_after_verification(self):
+        user = User.objects.create_user(username="cliente8", password="x", role=User.Role.CUSTOMER)
+        CustomerProfile.objects.create(user=user)
+        token = email_verification_token.make_token(user)
+        user.customer_profile.email_verified = True
+        user.customer_profile.save(update_fields=["email_verified"])
+        self.assertFalse(email_verification_token.check_token(user, token))
+
+
+class SendVerificationEmailTest(TestCase):
+    def test_sends_one_email_with_a_working_link(self):
+        user = User.objects.create_user(username="cliente9", password="x", role=User.Role.CUSTOMER, email="cliente9@example.com")
+        CustomerProfile.objects.create(user=user)
+        request = RequestFactory().get("/")
+        send_verification_email(user, request)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["cliente9@example.com"])
+
+
+class VerifyEmailViewTest(TestCase):
+    def test_valid_token_marks_email_verified(self):
+        user = User.objects.create_user(username="cliente10", password="x", role=User.Role.CUSTOMER)
+        CustomerProfile.objects.create(user=user)
+        uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
+        token = email_verification_token.make_token(user)
+
+        response = self.client.get(reverse("billing:verify_email", kwargs={"uidb64": uidb64, "token": token}))
+
+        self.assertEqual(response.status_code, 200)
+        user.customer_profile.refresh_from_db()
+        self.assertTrue(user.customer_profile.email_verified)
+
+    def test_invalid_token_does_not_verify(self):
+        user = User.objects.create_user(username="cliente11", password="x", role=User.Role.CUSTOMER)
+        CustomerProfile.objects.create(user=user)
+        uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
+
+        response = self.client.get(reverse("billing:verify_email", kwargs={"uidb64": uidb64, "token": "lixo-invalido"}))
+
+        self.assertEqual(response.status_code, 400)
+        user.customer_profile.refresh_from_db()
+        self.assertFalse(user.customer_profile.email_verified)

@@ -234,6 +234,12 @@ ALERT_DEDUP_COOLDOWN_SECONDS = config(
 TMT_BRIDGE_ENABLED = config("TMT_BRIDGE_ENABLED", default=False, cast=bool)
 TMT_BRIDGE_TOKEN = config("TMT_BRIDGE_TOKEN", default="")
 
+# Billing — outbound e-mail (verification link, future receipts). No real
+# provider configured yet: defaults to the console backend, which only logs
+# the message and never fails, so signup is never blocked by this.
+EMAIL_BACKEND = config("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="no-reply@smr.local")
+
 # Whale Copy — Live Execution (born disabled)
 # PRD §19: live execution is gated by explicit flag. When False (default),
 # all copy trading runs in dry-run/paper mode. Only set to True when:
