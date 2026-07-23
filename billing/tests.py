@@ -248,3 +248,30 @@ class ExpireSubscriptionsTaskTest(TestCase):
 
         profile.refresh_from_db()
         self.assertEqual(profile.status, CustomerProfile.Status.FREE)
+
+
+class FavoriteToggleViewTest(TestCase):
+    def test_toggling_on_then_off(self):
+        user = User.objects.create_user(username="cliente21", password="x", role=User.Role.CUSTOMER)
+        CustomerProfile.objects.create(user=user, status=CustomerProfile.Status.ACTIVE)
+        wallet = Wallet.objects.create(address="0x" + "b" * 40)
+        self.client.force_login(user)
+        url = reverse("billing:favorite_toggle", kwargs={"wallet_id": wallet.pk})
+
+        first = self.client.post(url)
+        self.assertEqual(first.json(), {"favorited": True})
+        self.assertTrue(Favorite.objects.filter(user=user, wallet=wallet).exists())
+
+        second = self.client.post(url)
+        self.assertEqual(second.json(), {"favorited": False})
+        self.assertFalse(Favorite.objects.filter(user=user, wallet=wallet).exists())
+
+    def test_requires_active_subscription(self):
+        user = User.objects.create_user(username="cliente22", password="x", role=User.Role.CUSTOMER)
+        CustomerProfile.objects.create(user=user, status=CustomerProfile.Status.FREE)
+        wallet = Wallet.objects.create(address="0x" + "c" * 40)
+        self.client.force_login(user)
+
+        response = self.client.post(reverse("billing:favorite_toggle", kwargs={"wallet_id": wallet.pk}))
+
+        self.assertRedirects(response, reverse("billing:subscribe_required"))

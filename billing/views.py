@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from django.contrib.auth import login
 from django.db import transaction
-from django.shortcuts import render
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, render
 from django.urls import reverse_lazy
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
@@ -14,8 +15,9 @@ from accounts.models import User
 from billing.emails import send_verification_email
 from billing.forms import ExchangeCredentialForm, SignupForm
 from billing.mixins import SubscriptionRequiredMixin
-from billing.models import CustomerProfile, ExchangeCredential
+from billing.models import CustomerProfile, ExchangeCredential, Favorite
 from billing.tokens import email_verification_token
+from wallets.models import Wallet
 
 
 class SignupView(FormView):
@@ -68,3 +70,13 @@ class ExchangeCredentialCreateView(SubscriptionRequiredMixin, FormView):
 
 class SubscribeRequiredView(TemplateView):
     template_name = "registration/subscribe_required.html"
+
+
+class FavoriteToggleView(SubscriptionRequiredMixin, GenericView):
+    def post(self, request, wallet_id):
+        wallet = get_object_or_404(Wallet, pk=wallet_id)
+        favorite, created = Favorite.objects.get_or_create(user=request.user, wallet=wallet)
+        if not created:
+            favorite.delete()
+            return JsonResponse({"favorited": False})
+        return JsonResponse({"favorited": True})
