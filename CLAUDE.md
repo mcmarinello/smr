@@ -31,6 +31,7 @@ smr/
 ├── alerts/                    # AlertRule, Notification, Telegram
 ├── copytrading/               # CopyTradingProfile, SimulatedTrade, executor (dry+live), risk_manager
 ├── bridge/                    # contrato de API com TMT (desligado)
+├── billing/                   # cliente, assinatura, favoritos, credencial de corretora (placeholder)
 ├── dashboard/                 # views agregadas, KPIs, whale_copy_status
 ├── accounts/                  # User customizado, roles
 └── docs/                      # MkDocs
