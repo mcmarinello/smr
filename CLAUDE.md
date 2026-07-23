@@ -32,7 +32,7 @@ smr/
 ├── copytrading/               # CopyTradingProfile, SimulatedTrade, executor (dry+live), risk_manager
 ├── bridge/                    # contrato de API com TMT (desligado)
 ├── billing/                   # cliente, assinatura, favoritos, credencial de corretora (placeholder), billing cripto TRC-20
-├── dashboard/                 # views agregadas, KPIs, whale_copy_status
+├── dashboard/                 # views agregadas, KPIs, whale_copy_status, gating freemium
 ├── accounts/                  # User customizado, roles
 └── docs/                      # MkDocs
 ```
