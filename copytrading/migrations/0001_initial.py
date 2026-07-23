@@ -207,6 +207,7 @@ class Migration(migrations.Migration):
                     "fill_source",
                     models.ForeignKey(
                         blank=True,
+                        db_constraint=False,
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="simulated_trades",

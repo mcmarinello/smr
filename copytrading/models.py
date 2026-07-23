@@ -172,12 +172,17 @@ class SimulatedTrade(BaseModel):
     )
     # Original HL fill that triggered this open. Nullable so the simulator
     # can also record closes that arrived without a tracked counterpart.
+    # db_constraint=False: wallets_fill's primary key becomes a composite
+    # (id, timestamp) once it's a TimescaleDB hypertable (see wallets
+    # migration 0003), so Postgres can no longer enforce a plain FK against
+    # `id` alone. Django still tracks the relation at the ORM level.
     fill_source = models.ForeignKey(
         Fill,
         on_delete=models.SET_NULL,
         related_name="simulated_trades",
         null=True,
         blank=True,
+        db_constraint=False,
     )
 
     class Meta:
