@@ -717,6 +717,73 @@ class CryptoPaymentDetailViewTest(TestCase):
 
         self.assertEqual(response.status_code, 404)
 
+    @patch("billing.views.verify_transaction")
+    def test_reused_hash_is_rejected_regardless_of_case(self, mock_verify):
+        mock_verify.return_value = Decimal("10.00")
+        user = User.objects.create_user(username="pagador7", password="x", role=User.Role.CUSTOMER)
+        CustomerProfile.objects.create(user=user)
+        CryptoPayment.objects.create(
+            user=user,
+            plan_interval=CustomerProfile.Interval.MONTHLY,
+            expected_amount_usdt=Decimal("10.00"),
+            expires_at=timezone.now() + timedelta(minutes=30),
+            tx_hash="f" * 64,
+            status=CryptoPayment.Status.CONFIRMED,
+        )
+        payment = self._create_payment(user)
+        self.client.force_login(user)
+
+        response = self.client.post(
+            reverse("billing:crypto_payment_detail", kwargs={"pk": payment.pk}),
+            {"tx_hash": "F" * 64},
+        )
+
+        payment.refresh_from_db()
+        self.assertEqual(payment.status, CryptoPayment.Status.PENDING)
+        self.assertContains(response, "já foi usada")
+        mock_verify.assert_not_called()
+
+    @patch("billing.views.verify_transaction")
+    def test_stored_hash_is_normalized_to_lowercase(self, mock_verify):
+        mock_verify.return_value = Decimal("10.00")
+        user = User.objects.create_user(username="pagador8", password="x", role=User.Role.CUSTOMER)
+        CustomerProfile.objects.create(user=user)
+        payment = self._create_payment(user)
+        self.client.force_login(user)
+
+        self.client.post(
+            reverse("billing:crypto_payment_detail", kwargs={"pk": payment.pk}),
+            {"tx_hash": " " + "A" * 64 + " "},
+        )
+
+        payment.refresh_from_db()
+        self.assertEqual(payment.tx_hash, "a" * 64)
+
+    @patch("billing.views.verify_transaction")
+    def test_promo_uses_count_never_exceeds_max_uses(self, mock_verify):
+        mock_verify.return_value = Decimal("5.00")
+        promo = PromoCode.objects.create(code="LIMITADO", discount_percent=50, max_uses=1, uses_count=1)
+        user = User.objects.create_user(username="pagador9", password="x", role=User.Role.CUSTOMER)
+        CustomerProfile.objects.create(user=user)
+        payment = CryptoPayment.objects.create(
+            user=user,
+            plan_interval=CustomerProfile.Interval.MONTHLY,
+            expected_amount_usdt=Decimal("5.00"),
+            promo_code=promo,
+            expires_at=timezone.now() + timedelta(minutes=30),
+        )
+        self.client.force_login(user)
+
+        self.client.post(
+            reverse("billing:crypto_payment_detail", kwargs={"pk": payment.pk}),
+            {"tx_hash": "b" * 64},
+        )
+
+        promo.refresh_from_db()
+        payment.refresh_from_db()
+        self.assertEqual(promo.uses_count, 1)
+        self.assertEqual(payment.status, CryptoPayment.Status.CONFIRMED)
+
     @staticmethod
     def _fake_png_bytes() -> bytes:
         buffer = BytesIO()

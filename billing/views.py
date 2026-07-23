@@ -154,6 +154,8 @@ class CryptoPaymentDetailView(LoginRequiredMixin, FormView):
                 )
                 return self.form_invalid(form)
 
+        tx_hash = tx_hash.strip().lower()
+
         if CryptoPayment.objects.filter(tx_hash=tx_hash).exclude(pk=payment.pk).exists():
             form.add_error(None, "Essa transação já foi usada em outra cobrança.")
             return self.form_invalid(form)
@@ -178,7 +180,10 @@ class CryptoPaymentDetailView(LoginRequiredMixin, FormView):
             profile.save(update_fields=["status", "plan_interval", "current_period_end"])
 
             if payment.promo_code_id:
-                PromoCode.objects.filter(pk=payment.promo_code_id).update(uses_count=F("uses_count") + 1)
+                promo = PromoCode.objects.select_for_update().get(pk=payment.promo_code_id)
+                if promo.is_valid():
+                    promo.uses_count = F("uses_count") + 1
+                    promo.save(update_fields=["uses_count"])
 
         self.success_url = reverse("dashboard_home")
         return super().form_valid(form)
