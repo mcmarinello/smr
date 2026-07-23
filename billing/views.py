@@ -2,16 +2,19 @@ from __future__ import annotations
 
 from django.contrib.auth import login
 from django.db import transaction
+from django.http import HttpResponse
 from django.shortcuts import render
 from django.urls import reverse_lazy
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
 from django.views import View
 from django.views.generic import FormView, TemplateView
+from django.views.generic import View as GenericView
 
 from accounts.models import User
 from billing.emails import send_verification_email
 from billing.forms import SignupForm
+from billing.mixins import SubscriptionRequiredMixin
 from billing.models import CustomerProfile
 from billing.tokens import email_verification_token
 
@@ -49,3 +52,12 @@ class VerifyEmailView(View):
             user.customer_profile.save(update_fields=["email_verified"])
             return render(request, "registration/verify_email_result.html", {"success": True})
         return render(request, "registration/verify_email_result.html", {"success": False}, status=400)
+
+
+class _GatedProbeView(SubscriptionRequiredMixin, GenericView):
+    def get(self, request):
+        return HttpResponse("ok")
+
+
+class SubscribeRequiredView(TemplateView):
+    template_name = "registration/subscribe_required.html"

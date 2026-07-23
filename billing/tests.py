@@ -1,11 +1,12 @@
 from django.core import mail
 from django.db import IntegrityError
-from django.test import RequestFactory, TestCase
+from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 
 from accounts.models import User
+from billing.access import access_redirect
 from billing.crypto import decrypt_secret, encrypt_secret
 from billing.emails import send_verification_email
 from billing.models import CustomerProfile, ExchangeCredential, Favorite
@@ -138,3 +139,52 @@ class VerifyEmailViewTest(TestCase):
         self.assertEqual(response.status_code, 400)
         user.customer_profile.refresh_from_db()
         self.assertFalse(user.customer_profile.email_verified)
+
+
+class AccessRedirectTest(TestCase):
+    def test_staff_always_allowed(self):
+        user = User.objects.create_user(username="staff2", password="x", role=User.Role.OPERATOR)
+        self.assertIsNone(access_redirect(user))
+
+    def test_free_customer_is_redirected_to_subscribe(self):
+        user = User.objects.create_user(username="cliente12", password="x", role=User.Role.CUSTOMER)
+        CustomerProfile.objects.create(user=user, status=CustomerProfile.Status.FREE)
+        self.assertEqual(access_redirect(user), "billing:subscribe_required")
+
+    def test_active_customer_is_allowed(self):
+        user = User.objects.create_user(username="cliente13", password="x", role=User.Role.CUSTOMER)
+        CustomerProfile.objects.create(user=user, status=CustomerProfile.Status.ACTIVE)
+        self.assertIsNone(access_redirect(user))
+
+    @override_settings(EMAIL_VERIFICATION_REQUIRED=True)
+    def test_unverified_active_customer_is_redirected_to_verify(self):
+        user = User.objects.create_user(username="cliente14", password="x", role=User.Role.CUSTOMER)
+        CustomerProfile.objects.create(user=user, status=CustomerProfile.Status.ACTIVE, email_verified=False)
+        self.assertEqual(access_redirect(user), "billing:verify_email_sent")
+
+
+class SubscriptionGatingViewTest(TestCase):
+    def test_mixin_blocks_free_customer(self):
+        user = User.objects.create_user(username="cliente15", password="x", role=User.Role.CUSTOMER)
+        CustomerProfile.objects.create(user=user, status=CustomerProfile.Status.FREE)
+        self.client.force_login(user)
+        response = self.client.get("/minhas-credenciais/")
+        self.assertRedirects(response, reverse("billing:subscribe_required"))
+
+    def test_mixin_allows_active_customer(self):
+        user = User.objects.create_user(username="cliente16", password="x", role=User.Role.CUSTOMER)
+        CustomerProfile.objects.create(user=user, status=CustomerProfile.Status.ACTIVE)
+        self.client.force_login(user)
+        response = self.client.get("/minhas-credenciais/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_mixin_allows_staff_regardless_of_profile(self):
+        user = User.objects.create_user(username="staff3", password="x", role=User.Role.ADMIN)
+        self.client.force_login(user)
+        response = self.client.get("/minhas-credenciais/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_mixin_redirects_anonymous_to_login(self):
+        response = self.client.get("/minhas-credenciais/")
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse("login"), response.url)

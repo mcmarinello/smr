@@ -240,6 +240,11 @@ TMT_BRIDGE_TOKEN = config("TMT_BRIDGE_TOKEN", default="")
 EMAIL_BACKEND = config("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="no-reply@smr.local")
 
+# When True, a customer must have CustomerProfile.email_verified before
+# accessing gated views. Defaults False until a real e-mail provider exists —
+# see docs/specs/2026-07-23-multi-tenant-foundation-design.md.
+EMAIL_VERIFICATION_REQUIRED = config("EMAIL_VERIFICATION_REQUIRED", default=False, cast=bool)
+
 # Whale Copy — Live Execution (born disabled)
 # PRD §19: live execution is gated by explicit flag. When False (default),
 # all copy trading runs in dry-run/paper mode. Only set to True when:
