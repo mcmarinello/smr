@@ -16,7 +16,7 @@ from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 
 from accounts.models import User
-from billing.access import access_redirect
+from billing.access import access_redirect, has_full_access
 from billing.crypto import decrypt_secret, encrypt_secret
 from billing.emails import send_verification_email
 from billing.models import CryptoPayment, CustomerProfile, ExchangeCredential, Favorite, PromoCode
@@ -184,6 +184,22 @@ class AccessRedirectTest(TestCase):
     def test_customer_without_profile_is_redirected_not_crashed(self):
         user = User.objects.create_user(username="clientesemperfil", password="x", role=User.Role.CUSTOMER)
         self.assertEqual(access_redirect(user), "billing:subscribe_required")
+
+
+class HasFullAccessTest(TestCase):
+    def test_staff_always_has_full_access(self):
+        user = User.objects.create_user(username="staff4", password="x", role=User.Role.ADMIN)
+        self.assertTrue(has_full_access(user))
+
+    def test_free_customer_does_not_have_full_access(self):
+        user = User.objects.create_user(username="free3", password="x", role=User.Role.CUSTOMER)
+        CustomerProfile.objects.create(user=user, status=CustomerProfile.Status.FREE)
+        self.assertFalse(has_full_access(user))
+
+    def test_active_customer_has_full_access(self):
+        user = User.objects.create_user(username="active3", password="x", role=User.Role.CUSTOMER)
+        CustomerProfile.objects.create(user=user, status=CustomerProfile.Status.ACTIVE)
+        self.assertTrue(has_full_access(user))
 
 
 class SubscriptionGatingViewTest(TestCase):

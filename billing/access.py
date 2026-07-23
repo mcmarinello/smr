@@ -23,3 +23,8 @@ def access_redirect(user) -> str | None:
     if profile.status != CustomerProfile.Status.ACTIVE:
         return "billing:subscribe_required"
     return None
+
+
+def has_full_access(user) -> bool:
+    """True for staff roles and active-subscription customers alike."""
+    return access_redirect(user) is None
