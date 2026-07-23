@@ -1,5 +1,6 @@
 from django.db import IntegrityError
 from django.test import TestCase
+from django.urls import reverse
 
 from accounts.models import User
 from billing.crypto import decrypt_secret, encrypt_secret
@@ -51,3 +52,33 @@ class FavoriteTest(TestCase):
         Favorite.objects.create(user=user, wallet=wallet)
         with self.assertRaises(IntegrityError):
             Favorite.objects.create(user=user, wallet=wallet)
+
+
+class SignupViewTest(TestCase):
+    def test_signup_creates_user_and_free_profile(self):
+        response = self.client.post(
+            reverse("billing:signup"),
+            {
+                "username": "novocliente",
+                "email": "novo@example.com",
+                "password1": "S3nhaForte!23",
+                "password2": "S3nhaForte!23",
+            },
+        )
+        user = User.objects.get(username="novocliente")
+        self.assertEqual(user.role, User.Role.CUSTOMER)
+        self.assertEqual(user.customer_profile.status, CustomerProfile.Status.FREE)
+        self.assertRedirects(response, "/app/")
+
+    def test_signup_logs_the_user_in(self):
+        self.client.post(
+            reverse("billing:signup"),
+            {
+                "username": "cliente6",
+                "email": "cliente6@example.com",
+                "password1": "S3nhaForte!23",
+                "password2": "S3nhaForte!23",
+            },
+        )
+        response = self.client.get(reverse("dashboard_home"))
+        self.assertEqual(response.wsgi_request.user.username, "cliente6")
