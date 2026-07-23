@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from django.core.validators import MaxValueValidator
 from django.db import models
+from django.utils import timezone
 
 from accounts.models import User
 from billing.crypto import decrypt_secret, encrypt_secret
@@ -65,3 +67,24 @@ class Favorite(BaseModel):
 
     def __str__(self) -> str:
         return f"{self.user.username} ★ {self.wallet.address}"
+
+
+class PromoCode(BaseModel):
+    code = models.CharField(max_length=32, unique=True)
+    discount_percent = models.PositiveIntegerField(validators=[MaxValueValidator(100)])
+    max_uses = models.PositiveIntegerField(null=True, blank=True)  # None = unlimited
+    uses_count = models.PositiveIntegerField(default=0)
+    valid_until = models.DateTimeField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+
+    def is_valid(self) -> bool:
+        if not self.is_active:
+            return False
+        if self.valid_until and timezone.now() > self.valid_until:
+            return False
+        if self.max_uses is not None and self.uses_count >= self.max_uses:
+            return False
+        return True
+
+    def __str__(self) -> str:
+        return f"{self.code} (-{self.discount_percent}%)"

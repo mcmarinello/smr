@@ -12,7 +12,7 @@ from accounts.models import User
 from billing.access import access_redirect
 from billing.crypto import decrypt_secret, encrypt_secret
 from billing.emails import send_verification_email
-from billing.models import CustomerProfile, ExchangeCredential, Favorite
+from billing.models import CustomerProfile, ExchangeCredential, Favorite, PromoCode
 from billing.tasks import expire_subscriptions
 from billing.tokens import email_verification_token
 from wallets.models import Wallet
@@ -285,3 +285,29 @@ class FavoriteToggleViewTest(TestCase):
         response = self.client.post(reverse("billing:favorite_toggle", kwargs={"wallet_id": wallet.pk}))
 
         self.assertRedirects(response, reverse("billing:subscribe_required"))
+
+
+class PromoCodeTest(TestCase):
+    def test_valid_code_passes(self):
+        promo = PromoCode.objects.create(code="PROMO50", discount_percent=50)
+        self.assertTrue(promo.is_valid())
+
+    def test_inactive_code_is_invalid(self):
+        promo = PromoCode.objects.create(code="OFF", discount_percent=10, is_active=False)
+        self.assertFalse(promo.is_valid())
+
+    def test_expired_code_is_invalid(self):
+        promo = PromoCode.objects.create(
+            code="EXPIRED10",
+            discount_percent=10,
+            valid_until=timezone.now() - timedelta(days=1),
+        )
+        self.assertFalse(promo.is_valid())
+
+    def test_code_at_max_uses_is_invalid(self):
+        promo = PromoCode.objects.create(code="LIMITED", discount_percent=10, max_uses=1, uses_count=1)
+        self.assertFalse(promo.is_valid())
+
+    def test_code_with_no_max_uses_is_always_valid_by_use_count(self):
+        promo = PromoCode.objects.create(code="UNLIMITED", discount_percent=10, uses_count=1000)
+        self.assertTrue(promo.is_valid())
